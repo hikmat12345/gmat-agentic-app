@@ -2,7 +2,30 @@ services:
   agents:
     build: ./backend/agents
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
-      - ./agents/.env
+      - path: ./backend/agents/.env
+        required: false
+      - path: ./.env
+        required: false
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_CLARITY_ID: ${NEXT_PUBLIC_CLARITY_ID:-}
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: ./frontend/.env.local
+        required: false
+      - path: ./.env
+        required: false
+    environment:
+      - AGENTS_URL=http://agents:8080
+      - AGENT_SERVICE_URL=http://localhost:7000
+    depends_on:
+      - agents
     restart: unless-stopped

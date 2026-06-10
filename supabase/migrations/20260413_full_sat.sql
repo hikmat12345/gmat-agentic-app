@@ -7,6 +7,10 @@
 ALTER TYPE problem_source ADD VALUE IF NOT EXISTS 'full_sat';
 ALTER TYPE session_source ADD VALUE IF NOT EXISTS 'full_sat';
 
+-- Commit enum additions before using new values (PostgreSQL restriction)
+COMMIT;
+BEGIN;
+
 -- ============================================================
 -- B. Update CHECK constraint on problems to allow full_sat
 -- ============================================================
