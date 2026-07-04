@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { getUserByClerkId, updateUser } from "@/lib/db/queries/users";
 import { getProfileData } from "@/lib/db/queries/profile";
-import { getLastCompletedAttempt } from "@/lib/db/queries/full-sat";
+import { getLastCompletedGmatAttempt } from "@/lib/db/queries/full-gmat";
 import { getRankProgress, RANKS } from "@/lib/ranks";
 import { supabase } from "@/lib/supabase/client";
 import { NextResponse } from "next/server";
@@ -21,17 +21,18 @@ export async function GET() {
 
   const [profileData, lastAttempt] = await Promise.all([
     getProfileData(user.id),
-    getLastCompletedAttempt(user.id),
+    getLastCompletedGmatAttempt(user.id),
   ]);
 
   const rankProgress = getRankProgress(profileData.totalScore);
 
-  const latestSatAttempt = lastAttempt
+  const latestGmatAttempt = lastAttempt
     ? {
         id: lastAttempt.id,
         totalScore: lastAttempt.totalScore,
-        rwScaledScore: lastAttempt.rwScaledScore,
-        mathScaledScore: lastAttempt.mathScaledScore,
+        verbalScaledScore: lastAttempt.verbalScaledScore,
+        quantitativeScaledScore: lastAttempt.quantitativeScaledScore,
+        dataInsightsScaledScore: lastAttempt.dataInsightsScaledScore,
         completedAt: lastAttempt.completedAt,
       }
     : null;
@@ -67,7 +68,7 @@ export async function GET() {
 
   return NextResponse.json({
     ...profileData,
-    latestSatAttempt,
+    latestGmatAttempt,
     weeklyStreakDays,
     rank: {
       current: {

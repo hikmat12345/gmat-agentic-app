@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Swords, Sparkles, CheckCircle2, Zap } from "lucide-react";
+import { Target, Brain, CheckCircle2, RefreshCw } from "lucide-react";
 import { useTodaysQuest } from "@/hooks/use-daily-quest";
+import { useState } from "react";
 
 export function DailyQuestCard() {
-  const { data, isLoading } = useTodaysQuest();
+  const { data, isLoading, refetch } = useTodaysQuest();
+  const [retrying, setRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await refetch();
+    setRetrying(false);
+  };
 
   if (isLoading) {
     return <div className="h-32 bg-muted animate-pulse rounded-lg" />;
@@ -14,17 +22,24 @@ export function DailyQuestCard() {
 
   const quest = data?.quest;
 
-  // Quest still loading/generating (auto-generated on GET)
   if (!quest) {
     return (
       <div className="relative border-2 border-muted-foreground/20 bg-gradient-to-b from-muted/50 to-transparent px-6 py-8 text-center rounded-lg">
-        <Swords className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <Target className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
         <p className="text-lg font-semibold text-muted-foreground">
-          Preparing your quest...
+          No session yet for today
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your adaptive daily quest is being generated
+          Your personalized practice session will be ready shortly
         </p>
+        <button
+          onClick={handleRetry}
+          disabled={retrying}
+          className="mt-4 inline-flex items-center gap-2 rounded-md border border-muted-foreground/30 px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50 cursor-pointer"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} />
+          {retrying ? "Loading..." : "Load Session"}
+        </button>
       </div>
     );
   }
@@ -50,14 +65,10 @@ export function DailyQuestCard() {
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-green-500" />
             <div>
-              <p className="font-semibold">Quest Complete!</p>
+              <p className="font-semibold">Session Complete!</p>
               <p className="text-sm text-muted-foreground">
                 {quest.correctCount}/{quest.totalQuestions} correct ({accuracy}%)
               </p>
-            </div>
-            <div className="ml-auto flex items-center gap-1 text-athena-amber">
-              <Zap className="h-4 w-4" />
-              <span className="font-bold">+{quest.xpEarned} XP</span>
             </div>
           </div>
         </div>
@@ -78,16 +89,16 @@ export function DailyQuestCard() {
         whileTap={{ scale: 0.99 }}
         className="relative border-2 border-athena-amber/30 bg-gradient-to-b from-athena-amber/5 to-transparent px-6 py-8 cursor-pointer text-center rounded-lg"
       >
-        <Sparkles className="absolute right-4 top-4 h-4 w-4 text-athena-amber/30" />
-        <Swords className="mx-auto mb-3 h-8 w-8 text-primary" />
-        <p className="text-lg font-semibold">Daily Quest</p>
+        <Brain className="absolute right-4 top-4 h-4 w-4 text-athena-amber/30" />
+        <Target className="mx-auto mb-3 h-8 w-8 text-primary" />
+        <p className="text-lg font-semibold">Daily Practice</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {answered > 0
             ? `${answered}/${quest.totalQuestions} answered · ${progress}% done`
-            : `${quest.totalQuestions} adaptive questions tailored to you`}
+            : `${quest.totalQuestions} personalized questions for today`}
         </p>
         {answered > 0 && (
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all"
               style={{ width: `${progress}%` }}
@@ -95,7 +106,7 @@ export function DailyQuestCard() {
           </div>
         )}
         <p className="mt-3 text-sm font-medium text-muted-foreground">
-          {answered > 0 ? "Continue quest →" : "Begin quest →"}
+          {answered > 0 ? "Continue →" : "Start session →"}
         </p>
       </motion.div>
     </Link>

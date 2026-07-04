@@ -20,9 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Athena — SAT Math Prep",
+  title: "Athena — GMAT Prep",
   description:
-    "AI-powered SAT Math preparation with adaptive tutoring and structured accountability.",
+    "AI-powered GMAT Focus Edition preparation with adaptive tutoring and structured accountability.",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className="scroll-smooth">
         <body
           className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
         >
@@ -45,7 +45,7 @@ export default function RootLayout({
           >
             <QueryProvider>
               {children}
-              <Toaster richColors position="bottom-right" />
+              <Toaster richColors position="top-center" />
             </QueryProvider>
           </ThemeProvider>
           <Script

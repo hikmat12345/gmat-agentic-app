@@ -16,8 +16,8 @@ export function PracticeTestResults({
 }) {
   if (sessions.length === 0) {
     return (
-      <div className="border bg-card p-5">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="rounded-xl border bg-card p-5">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Practice Test Results
         </h2>
         <p className="mt-3 text-sm text-muted-foreground">
@@ -30,8 +30,8 @@ export function PracticeTestResults({
   const displayed = sessions.slice(0, 5);
 
   return (
-    <div className="border bg-card p-5">
-      <h2 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="rounded-xl border bg-card p-5">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Practice Test Results
       </h2>
       <div className="space-y-0">

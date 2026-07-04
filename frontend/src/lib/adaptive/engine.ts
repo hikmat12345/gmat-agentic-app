@@ -32,8 +32,17 @@ export function computeAdaptiveLevel(skill: SubsectionSkill): number {
 }
 
 // --- Global Difficulty Floor ---
+// Accepts both SAT composites (400-1600) and GMAT composites (205-805)
 
 export function computeGlobalFloor(composite: number): number {
+  // GMAT scale (205-805)
+  if (composite <= 805) {
+    if (composite >= 685) return 7;
+    if (composite >= 565) return 5;
+    if (composite >= 425) return 3;
+    return 1;
+  }
+  // SAT scale (400-1600) — kept for backward compat
   if (composite >= 1300) return 7;
   if (composite >= 1100) return 5;
   if (composite >= 900) return 3;
@@ -111,6 +120,75 @@ export function updateSkillAfterAnswer(
     streakWrong,
     lastSeenAt: new Date().toISOString(),
   };
+}
+
+// --- GMAT Section Balance ---
+
+const GMAT_SECTIONS = new Set(["Verbal", "Quantitative", "DataInsights"]);
+
+/**
+ * Rebalances question counts so each GMAT section gets roughly equal weight.
+ * For a 20-question quest with 3 GMAT sections: ~7-7-6.
+ * No-ops for SAT content (Math/ReadingWriting) or mixed curricula.
+ *
+ * subtopicSectionMap: subtopicId -> sectionCategory
+ */
+export function applyGmatSectionBalance(
+  distribution: (BucketAssignment & { questionCount: number })[],
+  subtopicSectionMap: Map<string, string>,
+  totalQuestions: number = 20
+): (BucketAssignment & { questionCount: number })[] {
+  // Detect whether this is a GMAT curriculum (any Verbal/Quantitative/DataInsights)
+  const sections = new Set(
+    distribution.map((d) => subtopicSectionMap.get(d.subtopicId) ?? "")
+  );
+  const isGmat = [...sections].some((s) => GMAT_SECTIONS.has(s));
+  if (!isGmat) return distribution;
+
+  // Group entries by section
+  const bySec = new Map<string, (BucketAssignment & { questionCount: number })[]>();
+  for (const entry of distribution) {
+    const sec = subtopicSectionMap.get(entry.subtopicId) ?? "Unknown";
+    if (!bySec.has(sec)) bySec.set(sec, []);
+    bySec.get(sec)!.push(entry);
+  }
+
+  const numSections = bySec.size;
+  if (numSections <= 1) return distribution;
+
+  // Each section gets floor(total / numSections); remainder distributed to sections
+  // with the highest current totals
+  const perSection = Math.floor(totalQuestions / numSections);
+  let remaining = totalQuestions - perSection * numSections;
+
+  const result: (BucketAssignment & { questionCount: number })[] = [];
+
+  for (const [, entries] of bySec) {
+    const sectionTarget = perSection + (remaining > 0 ? 1 : 0);
+    if (remaining > 0) remaining--;
+
+    const currentTotal = entries.reduce((s, e) => s + e.questionCount, 0);
+    if (currentTotal === 0) {
+      result.push(...entries);
+      continue;
+    }
+
+    // Scale each entry proportionally to hit sectionTarget
+    const scale = sectionTarget / currentTotal;
+    let allocated = 0;
+    const scaled = entries.map((e, i) => {
+      const count =
+        i === entries.length - 1
+          ? Math.max(0, sectionTarget - allocated)
+          : Math.max(0, Math.round(e.questionCount * scale));
+      allocated += count;
+      return { ...e, questionCount: count };
+    });
+
+    result.push(...scaled);
+  }
+
+  return result;
 }
 
 // --- Quest Composition ---

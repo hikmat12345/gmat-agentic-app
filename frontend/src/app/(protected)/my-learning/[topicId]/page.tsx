@@ -8,7 +8,7 @@ import {
   Target,
   Lightbulb,
   AlertTriangle,
-  Sparkles,
+  Brain,
   ClipboardList,
   ArrowRight,
   Zap,
@@ -61,7 +61,7 @@ export default function MyLearningTopicPage() {
   const questions: CustomQuestion[] = data.questions;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
 
       {/* Back */}
       <Link
@@ -79,8 +79,8 @@ export default function MyLearningTopicPage() {
         transition={{ duration: 0.3 }}
         className="mb-8"
       >
-        <div className="inline-flex items-center gap-1.5 border border-athena-amber/30 bg-athena-amber/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-athena-amber mb-3">
-          <Zap className="h-2.5 w-2.5" />
+        <div className="inline-flex items-center gap-1.5 rounded-lg border border-athena-amber/30 bg-athena-amber/5 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-athena-amber mb-3">
+          <Zap className="h-3.5 w-3.5" />
           Mission Briefing
         </div>
         <h1 className="text-3xl font-bold tracking-tight mb-3">{topic.title}</h1>
@@ -100,16 +100,16 @@ export default function MyLearningTopicPage() {
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="group relative h-full border-2 border-athena-amber/40 bg-gradient-to-b from-athena-amber/10 to-transparent p-5 cursor-pointer transition-colors hover:border-athena-amber"
+            className="group relative h-full rounded-xl border-2 border-athena-amber/40 bg-gradient-to-b from-athena-amber/10 to-transparent p-5 cursor-pointer transition-colors hover:border-athena-amber"
           >
-            <Sparkles className="absolute right-4 top-4 h-3.5 w-3.5 text-athena-amber/30 group-hover:text-athena-amber/60 transition-colors" />
-            <div className="mb-4 flex h-10 w-10 items-center justify-center bg-athena-amber/15">
-              <Sparkles className="h-5 w-5 text-athena-amber" />
+            <Brain className="absolute right-4 top-4 h-4 w-4 text-athena-amber/30 group-hover:text-athena-amber/60 transition-colors" />
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-athena-amber/15">
+              <Brain className="h-5 w-5 text-athena-amber" />
             </div>
-            <p className="font-bold text-sm uppercase tracking-wide mb-1">Micro-Lesson</p>
-            <p className="text-xs text-muted-foreground mb-4">Interactive lesson with whiteboard</p>
-            <div className="flex items-center gap-1 text-xs font-semibold text-athena-amber">
-              Start <ArrowRight className="h-3 w-3" />
+            <p className="font-bold text-base mb-1">Micro-Lesson</p>
+            <p className="text-sm text-muted-foreground mb-4">Interactive lesson with whiteboard</p>
+            <div className="flex items-center gap-1 text-sm font-semibold text-athena-amber">
+              Start <ArrowRight className="h-4 w-4" />
             </div>
           </motion.div>
         </Link>
@@ -119,16 +119,16 @@ export default function MyLearningTopicPage() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative h-full border-2 border-primary/40 bg-gradient-to-b from-primary/10 to-transparent p-5 cursor-pointer transition-colors hover:border-primary"
+              className="group relative h-full rounded-xl border-2 border-primary/40 bg-gradient-to-b from-primary/10 to-transparent p-5 cursor-pointer transition-colors hover:border-primary"
             >
-              <ClipboardList className="absolute right-4 top-4 h-3.5 w-3.5 text-primary/30 group-hover:text-primary/60 transition-colors" />
-              <div className="mb-4 flex h-10 w-10 items-center justify-center bg-primary/15">
+              <ClipboardList className="absolute right-4 top-4 h-4 w-4 text-primary/30 group-hover:text-primary/60 transition-colors" />
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
                 <ClipboardList className="h-5 w-5 text-primary" />
               </div>
-              <p className="font-bold text-sm uppercase tracking-wide mb-1">Take Quiz</p>
-              <p className="text-xs text-muted-foreground mb-4">{questions.length} questions — timed practice</p>
-              <div className="flex items-center gap-1 text-xs font-semibold text-primary">
-                Enter <ArrowRight className="h-3 w-3" />
+              <p className="font-bold text-base mb-1">Take Quiz</p>
+              <p className="text-sm text-muted-foreground mb-4">{questions.length} questions — timed practice</p>
+              <div className="flex items-center gap-1 text-sm font-semibold text-primary">
+                Enter <ArrowRight className="h-4 w-4" />
               </div>
             </motion.div>
           </Link>
@@ -149,7 +149,7 @@ export default function MyLearningTopicPage() {
       >
         {/* Learning Objectives */}
         {topic.learningObjectives.length > 0 && (
-          <motion.div variants={fadeUp} className="border bg-card">
+          <motion.div variants={fadeUp} className="rounded-xl border bg-card overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/30">
               <div className="flex h-6 w-6 items-center justify-center bg-green-500/10">
                 <Target className="h-3.5 w-3.5 text-green-500" />
@@ -160,7 +160,7 @@ export default function MyLearningTopicPage() {
             <ul className="p-5 space-y-3">
               {topic.learningObjectives.map((obj, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center bg-green-500/10 text-[10px] font-bold text-green-500">
+                  <span className="shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded bg-green-500/10 text-xs font-bold text-green-500">
                     {i + 1}
                   </span>
                   {obj}
@@ -172,7 +172,7 @@ export default function MyLearningTopicPage() {
 
         {/* Tips & Tricks */}
         {topic.tipsAndTricks.length > 0 && (
-          <motion.div variants={fadeUp} className="border bg-card">
+          <motion.div variants={fadeUp} className="rounded-xl border bg-card overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-muted/30">
               <div className="flex h-6 w-6 items-center justify-center bg-athena-amber/10">
                 <Lightbulb className="h-3.5 w-3.5 text-athena-amber" />
@@ -193,7 +193,7 @@ export default function MyLearningTopicPage() {
 
         {/* Common Mistakes */}
         {topic.commonMistakes.length > 0 && (
-          <motion.div variants={fadeUp} className="border bg-card">
+          <motion.div variants={fadeUp} className="rounded-xl border bg-card overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-border bg-destructive/5">
               <div className="flex h-6 w-6 items-center justify-center bg-destructive/10">
                 <AlertTriangle className="h-3.5 w-3.5 text-destructive" />

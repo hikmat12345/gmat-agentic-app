@@ -1,4 +1,4 @@
-export type SectionCategory = "ReadingWriting" | "Math";
+export type SectionCategory = "ReadingWriting" | "Math" | "Verbal" | "Quantitative" | "DataInsights";
 export type QuestBucket = "weak" | "mid" | "stretch";
 export type QuestStatus = "pending" | "in_progress" | "completed";
 

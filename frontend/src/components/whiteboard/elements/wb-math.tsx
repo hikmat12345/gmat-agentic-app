@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import katex from "katex";
 import type { TextStyle } from "@/types/whiteboard";
 import { adaptWbColor, useIsDarkMode } from "../wb-color";
@@ -79,7 +78,7 @@ export function WbMath({ latex, x, y, width, height, style, progress, isAnimatin
       height={contentHeight * scale + 4}
       style={{ overflow: "hidden" }}
     >
-      <motion.div
+      <div
         ref={containerRef}
         style={{
           fontSize,
@@ -91,9 +90,6 @@ export function WbMath({ latex, x, y, width, height, style, progress, isAnimatin
           transformOrigin: "top left",
           transform: scale < 1 ? `scale(${scale})` : undefined,
         }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
       />
     </foreignObject>
   );

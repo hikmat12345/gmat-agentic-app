@@ -10,9 +10,10 @@ export async function GET(request: NextRequest) {
 
   const subject = request.nextUrl.searchParams.get("subject");
 
-  let topicsQuery = supabase
+  const db = supabase as any;
+  let topicsQuery = db
     .from("topics")
-    .select("id, slug, name, icon, color_scheme, overview, estimated_total_minutes, sat_relevance, difficulty_distribution, order_index, subject")
+    .select("id, slug, name, icon, color_scheme, overview, estimated_total_minutes, sat_relevance, gmat_relevance, difficulty_distribution, order_index, subject")
     .order("order_index", { ascending: true });
 
   if (subject) {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       .order("order_index", { ascending: true }),
   ]);
 
-  const allTopics = (topicsRes.data ?? []).map((t) => ({
+  const allTopics = ((topicsRes.data ?? []) as any[]).map((t) => ({
     id: t.id,
     slug: t.slug,
     name: t.name,
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
     overview: t.overview,
     estimatedTotalMinutes: t.estimated_total_minutes,
     satRelevance: t.sat_relevance,
+    gmatRelevance: t.gmat_relevance,
     difficultyDistribution: t.difficulty_distribution,
     orderIndex: t.order_index,
     subject: t.subject,
@@ -52,10 +54,26 @@ export async function GET(request: NextRequest) {
     orderIndex: st.order_index,
   }));
 
-  const topicsWithSubtopics = allTopics.map((topic) => ({
-    ...topic,
-    subtopics: allSubtopics.filter((st) => st.topicId === topic.id),
-  }));
+  // Compute per-subject position to mark first 3 per subject as free
+  const subjectGroups = new Map<string, typeof allTopics>();
+  for (const topic of allTopics) {
+    const group = subjectGroups.get(topic.subject) ?? [];
+    group.push(topic);
+    subjectGroups.set(topic.subject, group);
+  }
+  for (const [subject, group] of subjectGroups) {
+    subjectGroups.set(subject, [...group].sort((a, b) => a.orderIndex - b.orderIndex));
+  }
+
+  const topicsWithSubtopics = allTopics.map((topic) => {
+    const group = subjectGroups.get(topic.subject) ?? [];
+    const posInSubject = group.findIndex((t) => t.id === topic.id);
+    return {
+      ...topic,
+      isFree: posInSubject < 3,
+      subtopics: allSubtopics.filter((st) => st.topicId === topic.id),
+    };
+  });
 
   return NextResponse.json({ topics: topicsWithSubtopics });
 }

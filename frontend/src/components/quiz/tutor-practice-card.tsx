@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { PracticeGradientCard } from "@/components/quiz/practice-gradient-card";
@@ -94,7 +94,7 @@ export function TutorPracticeCard({
               animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             >
-              <Sparkles className="h-6 w-6 text-athena-amber" />
+              <Brain className="h-6 w-6 text-athena-amber" />
             </motion.div>
             <p className="text-xs text-muted-foreground">Preparing practice problems…</p>
           </div>

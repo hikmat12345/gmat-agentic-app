@@ -39,7 +39,7 @@ export async function GET(
   const { data: problemsData } = await (supabase as any)
     .from("problems")
     .select("id, order_index, difficulty, difficulty_level, question_text, options, correct_option, explanation, solution_steps, hint, detailed_hint, time_recommendation_seconds")
-    .eq("source", "sat")
+    .eq("source", "gmat")
     .eq("subtopic_id", subtopic.id)
     .order("order_index", { ascending: true }) as { data: any[] | null };
 

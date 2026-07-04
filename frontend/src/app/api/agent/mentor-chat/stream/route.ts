@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getUserByClerkId } from "@/lib/db/queries/users";
 import { getProgressData } from "@/lib/db/queries/progress";
 import { getDashboardData } from "@/lib/db/queries/dashboard";
+import { requirePremium } from "@/lib/subscription";
 
 const AGENT_URL = process.env.AGENT_SERVICE_URL || "http://localhost:8080";
 
@@ -15,6 +16,11 @@ export async function POST(req: Request) {
   const user = await getUserByClerkId(clerkId);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const access = await requirePremium(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: "Premium subscription required" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -50,8 +56,9 @@ export async function POST(req: Request) {
       target_score: user.targetScore,
       current_composite: user.currentComposite,
       section_scores: {
-        reading_writing: progress.sectionScores.readingWriting.scaledScore,
-        math: progress.sectionScores.math.scaledScore,
+        verbal: progress.sectionScores.verbal.scaledScore,
+        quantitative: progress.sectionScores.quantitative.scaledScore,
+        data_insights: progress.sectionScores.dataInsights.scaledScore,
       },
       overall_accuracy: progress.overallStats.accuracy,
       total_questions_attempted: progress.overallStats.totalQuestions,

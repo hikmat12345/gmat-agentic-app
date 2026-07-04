@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 
 type StuckModalProps = {
   onComplete: () => void;
@@ -54,7 +54,7 @@ export function StuckModal({
                 animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0, 0.6] }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
               />
-              <Sparkles className="relative h-7 w-7 text-primary" />
+              <Brain className="relative h-7 w-7 text-primary" />
             </div>
           </div>
 

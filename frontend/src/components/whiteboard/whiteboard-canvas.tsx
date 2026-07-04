@@ -3,6 +3,8 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import type { WhiteboardStep, SelectedElement } from "@/types/whiteboard";
 import { computeLayout, computeBoardHeight, getStepLayout, getStepLayoutByIndex } from "./layout-engine";
+import { penTipForStep, boardToClient, isDiagramStep } from "./pen-tip";
+import type { BoardPoint, StepFocus } from "./pen-tip";
 import type { LayoutResult } from "./layout-engine";
 import { WbText } from "./elements/wb-text";
 import { WbMath } from "./elements/wb-math";
@@ -85,6 +87,10 @@ type WhiteboardCanvasProps = {
   onElementSelect?: (el: SelectedElement | null) => void;
   onElementToggle?: (el: SelectedElement) => void;
   onElementsSelect?: (els: SelectedElement[]) => void;
+  /** Called each frame with the pen-tip position (client px) while a diagram step is drawing. */
+  onPenTip?: (point: BoardPoint | null) => void;
+  /** Called when the current step changes; publishes the step's bounding box + SVG ref. */
+  onStepFocus?: (focus: StepFocus | null) => void;
 };
 
 const selKey = (el: SelectedElement) => `${el.stepId}:${el.content}`;
@@ -99,6 +105,8 @@ export function WhiteboardCanvas({
   onElementSelect,
   onElementToggle,
   onElementsSelect,
+  onPenTip,
+  onStepFocus,
 }: WhiteboardCanvasProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -255,6 +263,68 @@ export function WhiteboardCanvas({
   }, []);
 
   // Auto-scroll so the latest element's bottom edge sits at the viewport bottom.
+
+  // ── Orb callbacks — all via refs so we never put props in dep arrays ──────
+  const onPenTipRef = useRef(onPenTip);
+  onPenTipRef.current = onPenTip;
+  const onStepFocusRef = useRef(onStepFocus);
+  onStepFocusRef.current = onStepFocus;
+
+  // Keep step/layout accessible to the RAF loop without re-creating the closure.
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
+  const currentStepIndexRef = useRef(currentStepIndex);
+  currentStepIndexRef.current = currentStepIndex;
+  const stepProgressRef = useRef(stepProgress);
+  stepProgressRef.current = stepProgress;
+  const layoutMapRef = useRef(layoutMap);
+  layoutMapRef.current = layoutMap;
+  const viewBoxHeightRef = useRef(viewBoxHeight);
+  viewBoxHeightRef.current = viewBoxHeight;
+
+  // RAF loop: update pen-tip every frame so the orb traces the stroke in real
+  // time — avoids putting stepProgress in a useEffect dep array which would
+  // cause excessive re-renders and trigger React's max-update-depth guard.
+  useEffect(() => {
+    if (!onPenTipRef.current) return;
+    let rafId: number;
+    const tick = () => {
+      const cb = onPenTipRef.current;
+      if (!cb) { rafId = requestAnimationFrame(tick); return; }
+      const sp = stepProgressRef.current;
+      const step = stepsRef.current[currentStepIndexRef.current];
+      const svg = svgRef.current;
+      if (!step || !isDiagramStep(step) || sp >= 1 || !svg) {
+        cb(null);
+      } else {
+        const l = layoutMapRef.current.get(step.id);
+        if (!l) { cb(null); }
+        else {
+          const boardPt = penTipForStep(step, sp, { x: l.x, y: l.y, width: l.width, height: l.height });
+          cb(boardPt ? boardToClient(boardPt, svg, 1000, viewBoxHeightRef.current) : null);
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Step-focus: only re-emit when the step or layout changes (not every frame).
+  useEffect(() => {
+    const cb = onStepFocusRef.current;
+    if (!cb) return;
+    const step = steps[currentStepIndex];
+    if (!step) { cb(null); return; }
+    const svg = svgRef.current;
+    if (!svg) { cb(null); return; }
+    const l = layoutMap.get(step.id);
+    if (!l) { cb(null); return; }
+    cb({ box: { x: l.x, y: l.y, width: l.width, height: l.height }, svg, viewBoxWidth: 1000, viewBoxHeight });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStepIndex, layoutMap]);
+
   const prevVisibleCount = useRef(0);
   useEffect(() => {
     const visibleCount = visibleStepIds.size;

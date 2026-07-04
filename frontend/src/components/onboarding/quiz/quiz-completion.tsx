@@ -44,7 +44,7 @@ export function QuizCompletion({
         <CardContent className="space-y-6">
           <div>
             <p className="text-sm text-muted-foreground mb-1">
-              Your skill score
+              Your diagnostic score
             </p>
             <motion.p
               initial={{ opacity: 0 }}
@@ -67,10 +67,10 @@ export function QuizCompletion({
 
           <p className="text-sm text-muted-foreground">
             {skillScore >= 70
-              ? "Strong foundation! Let's build a plan to push even higher."
+              ? "Strong GMAT foundation! Let's build a plan to push your score even higher."
               : skillScore >= 40
-                ? "Good start! Your personalized lessons will help fill the gaps."
-                : "No worries — we've queued targeted lessons to get you up to speed."}
+                ? "Good start! Your personalized GMAT lessons will help fill the gaps."
+                : "No worries — we've queued targeted GMAT lessons to get you up to speed."}
           </p>
 
           <Button onClick={onContinue} className="w-full" size="lg">

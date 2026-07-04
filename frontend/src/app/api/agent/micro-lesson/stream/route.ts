@@ -1,12 +1,24 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getUserByClerkId } from "@/lib/db/queries/users";
+import { requirePremium } from "@/lib/subscription";
 
 const AGENT_URL = process.env.AGENT_SERVICE_URL || "http://localhost:8080";
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await getUserByClerkId(clerkId);
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const access = await requirePremium(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: "Premium subscription required" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -41,6 +53,20 @@ export async function POST(req: Request) {
     );
   }
 
+  // Normalize common_mistakes: seed data may store strings; backend expects objects
+  const normalizedCommonMistakes = (commonMistakes || []).map((m: unknown) =>
+    typeof m === "string"
+      ? { mistake: m, correction: "", why: "" }
+      : (m as { mistake: string; correction: string; why: string })
+  );
+
+  // Normalize key_formulas: seed data may store strings; backend expects objects
+  const normalizedKeyFormulas = (keyFormulas || []).map((f: unknown) =>
+    typeof f === "string"
+      ? { latex: f, description: "" }
+      : (f as { latex: string; description: string })
+  );
+
   try {
     const res = await fetch(`${AGENT_URL}/micro-lesson/stream`, {
       method: "POST",
@@ -50,14 +76,14 @@ export async function POST(req: Request) {
         subtopic,
         description: description || "",
         learning_objectives: learningObjectives || [],
-        key_formulas: keyFormulas || [],
-        common_mistakes: commonMistakes || [],
+        key_formulas: normalizedKeyFormulas,
+        common_mistakes: normalizedCommonMistakes,
         tips_and_tricks: tipsAndTricks || [],
         conceptual_overview: conceptualOverview
           ? {
-              definition: conceptualOverview.definition || "",
-              real_world_example: conceptualOverview.realWorldExample || "",
-              sat_context: conceptualOverview.satContext || "",
+              definition: (conceptualOverview as Record<string, string>).definition || "",
+              real_world_example: (conceptualOverview as Record<string, string>).real_world_example || (conceptualOverview as Record<string, string>).realWorldExample || "",
+              sat_context: (conceptualOverview as Record<string, string>).sat_context || (conceptualOverview as Record<string, string>).satContext || "",
             }
           : null,
       }),

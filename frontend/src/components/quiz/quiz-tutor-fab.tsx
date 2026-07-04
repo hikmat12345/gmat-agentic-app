@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { useAthenaConversation } from "@/hooks/use-athena-conversation";
 import type { QuizContext } from "@/hooks/use-athena-conversation";
 import { useWhiteboardPlayer } from "@/hooks/use-whiteboard-player";
@@ -201,7 +201,7 @@ export function QuizTutorFab({ topicName, subtopicName, currentProblem, question
               animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
-            <Sparkles className="relative h-6 w-6" />
+            <Brain className="relative h-6 w-6" />
           </motion.button>
         )}
       </AnimatePresence>

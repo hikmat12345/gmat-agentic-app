@@ -11,30 +11,19 @@ type SectionData = {
 };
 
 export function SectionScores({
-  rw,
-  math,
-  targetScore,
+  verbal,
+  quantitative,
+  dataInsights,
 }: {
-  rw: SectionData;
-  math: SectionData;
-  targetScore: number;
+  verbal: SectionData;
+  quantitative: SectionData;
+  dataInsights: SectionData;
 }) {
-  const sectionTarget = Math.round(targetScore / 2);
-
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
-        <SectionCard
-          label="Reading & Writing"
-          score={rw.scaledScore}
-          max={800}
-          target={sectionTarget}
-        />
-        <SectionCard
-          label="Math"
-          score={math.scaledScore}
-          max={800}
-          target={sectionTarget}
-        />
+    <div className="grid grid-cols-3 gap-4 h-full">
+      <SectionCard label="Verbal" score={verbal.scaledScore} hasData={verbal.total > 0} />
+      <SectionCard label="Quant" score={quantitative.scaledScore} hasData={quantitative.total > 0} />
+      <SectionCard label="Data Insights" score={dataInsights.scaledScore} hasData={dataInsights.total > 0} />
     </div>
   );
 }
@@ -42,24 +31,26 @@ export function SectionScores({
 function SectionCard({
   label,
   score,
-  max,
-  target,
+  hasData,
 }: {
   label: string;
   score: number;
-  max: number;
-  target: number;
+  hasData: boolean;
 }) {
-  const pct = max > 0 ? Math.min((score / max) * 100, 100) : 0;
+  const MIN = 60;
+  const MAX = 90;
+  const pct = hasData ? Math.min(((score - MIN) / (MAX - MIN)) * 100, 100) : 0;
 
   return (
-    <div className="border bg-card p-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="rounded-xl border bg-card p-5">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="text-4xl font-bold tabular-nums">{score}</span>
-        <span className="text-sm text-muted-foreground">/ {max}</span>
+        <span className="text-4xl font-bold tabular-nums">
+          {hasData ? score : "—"}
+        </span>
+        <span className="text-sm text-muted-foreground">/ 90</span>
       </div>
       <div className="mt-3 h-2 w-full overflow-hidden bg-muted">
         <motion.div
@@ -70,7 +61,7 @@ function SectionCard({
         />
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Target: {target}
+        {hasData ? "60–90 scale" : "No data yet"}
       </p>
     </div>
   );

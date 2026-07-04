@@ -95,9 +95,24 @@ export function useWhyThisMatters({
         if (lockRes.ok) {
           const lockData = await lockRes.json();
           if (!lockData.acquired) {
-            // Another client is generating — poll until ready
-            setPhase("loading");
-            return;
+            // Content already ready — re-check cache before streaming
+            const recheck = await fetch(loreApiPath, { signal: controller.signal });
+            if (recheck.ok) {
+              const recheckData = await recheck.json();
+              if (
+                recheckData?.status === "ready" &&
+                Array.isArray(recheckData.whiteboardSteps) &&
+                recheckData.whiteboardSteps.length > 0
+              ) {
+                const steps = recheckData.whiteboardSteps.map(
+                  (s: WhiteboardStep, i: number) => ({ ...s, id: i })
+                );
+                setWhiteboardSteps(steps);
+                setPhase("ready");
+                return;
+              }
+            }
+            // No cached content found — fall through to generate
           }
         }
       }

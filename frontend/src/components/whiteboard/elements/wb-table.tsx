@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { TableAction } from "@/types/whiteboard";
 
 type WbTableProps = {
@@ -36,12 +35,7 @@ export function WbTable({
 
   return (
     <foreignObject x={x} y={y} width={width} height={height} style={{ overflow: "visible" }}>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
-        style={{ width: "100%", padding: "4px 0" }}
-      >
+      <div style={{ width: "100%", padding: "4px 0" }}>
         <table
           style={{
             borderCollapse: "collapse",
@@ -79,15 +73,7 @@ export function WbTable({
             {rows.map((row, rowIdx) => {
               if (rowIdx + 1 >= visibleRows) return null;
               return (
-                <motion.tr
-                  key={rowIdx}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.15,
-                    delay: isAnimating ? (rowIdx + 1) * 0.08 : 0,
-                  }}
-                >
+                <tr key={rowIdx}>
                   {row.map((cell, col) => {
                     const hlColor = highlightMap.get(`${rowIdx}-${col}`);
                     return (
@@ -104,12 +90,12 @@ export function WbTable({
                       </td>
                     );
                   })}
-                </motion.tr>
+                </tr>
               );
             })}
           </tbody>
         </table>
-      </motion.div>
+      </div>
     </foreignObject>
   );
 }

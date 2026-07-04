@@ -70,6 +70,7 @@ export function useLessonChat({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatStepsRef = useRef<WhiteboardStep[]>([]);
   chatStepsRef.current = chatWhiteboardSteps;
+  const silenceCleanupRef = useRef<(() => void) | null>(null);
 
   const {
     amplitude,
@@ -391,7 +392,16 @@ export function useLessonChat({
 
   // ── Voice recording ──────────────────────────────────────────────
 
+  const stopRecording = useCallback(() => {
+    if (silenceCleanupRef.current) { silenceCleanupRef.current(); silenceCleanupRef.current = null; }
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
+    if (isRecording) { stopRecording(); return; }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       try { connectAudioStream(stream); } catch { /* optional */ }
@@ -405,24 +415,18 @@ export function useLessonChat({
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         stream.getTracks().forEach((t) => t.stop());
         disconnectAudio();
+        if (silenceCleanupRef.current) { silenceCleanupRef.current(); silenceCleanupRef.current = null; }
 
-        // Transcribe and send
         setIsProcessing(true);
         try {
           const form = new FormData();
-          form.append("audio", blob);
-          const res = await fetch("/api/agent/speech-to-text", {
-            method: "POST",
-            body: form,
-          });
+          form.append("audio", new Blob(chunksRef.current, { type: "audio/webm" }));
+          const res = await fetch("/api/agent/speech-to-text", { method: "POST", body: form });
           if (!res.ok) throw new Error("Transcription failed");
           const { text } = await res.json();
-          if (text?.trim()) {
-            await sendChat(text.trim());
-          }
+          if (text?.trim()) await sendChat(text.trim());
         } catch {
           setChatMessages((prev) => [
             ...prev,
@@ -435,17 +439,42 @@ export function useLessonChat({
 
       recorder.start();
       setIsRecording(true);
-    } catch {
-      // Microphone access denied
-    }
-  }, [sendChat, connectAudioStream, disconnectAudio]);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  }, []);
+      // Silence detection — auto-stop after 3 s of silence
+      try {
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const interval = setInterval(() => {
+          analyser.getByteFrequencyData(dataArray);
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          if (avg < 8) {
+            if (!silenceTimer) {
+              silenceTimer = setTimeout(() => {
+                if (mediaRecorderRef.current?.state === "recording") {
+                  mediaRecorderRef.current.stop();
+                  setIsRecording(false);
+                }
+              }, 3000);
+            }
+          } else {
+            if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+          }
+        }, 150);
+
+        silenceCleanupRef.current = () => {
+          clearInterval(interval);
+          if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+          audioCtx.close().catch(() => {});
+        };
+      } catch { /* AudioContext not available */ }
+    } catch { /* Microphone permission denied — fail silently */ }
+  }, [isRecording, stopRecording, sendChat, connectAudioStream, disconnectAudio]);
 
   const toggleMode = useCallback(() => {
     if (audioRef.current) {

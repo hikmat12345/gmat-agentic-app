@@ -1,19 +1,29 @@
 import { supabase } from "@/lib/supabase/client";
+import { computeFullGmatScore } from "@/lib/full-gmat/scoring";
+
+const db = supabase as any;
+
+function scaleSection(correct: number, total: number): number {
+  if (total <= 0) return 60;
+  const ratio = Math.max(0, Math.min(1, correct / total));
+  return Math.max(60, Math.min(90, Math.round(60 + ratio * 30)));
+}
 
 export async function getProgressData(userId: string) {
-  // Fetch all quiz sessions for this user
-  const { data: userSessions } = await supabase
+  // Fetch all GMAT quiz sessions for this user
+  const { data: userSessions } = await db
     .from("quiz_sessions")
     .select("id, subtopic_id, score, total_questions, time_elapsed_seconds, created_at")
     .eq("user_id", userId)
-    .eq("source", "sat")
+    .eq("source", "gmat")
     .order("created_at", { ascending: true });
 
-  const sessions = userSessions ?? [];
-  const sessionIds = sessions.map((s) => s.id);
-  const subtopicIds = [...new Set(sessions.map((s) => s.subtopic_id!))];
+  type SessionRow = { id: string; subtopic_id: string | null; score: number; total_questions: number; time_elapsed_seconds: number; created_at: string };
+  const sessions: SessionRow[] = userSessions ?? [];
+  const sessionIds: string[] = sessions.map((s) => s.id);
+  const subtopicIds: string[] = [...new Set(sessions.map((s) => s.subtopic_id).filter((id): id is string => id != null))];
 
-  // Fetch answers, subtopics, topics, and problems in parallel
+  // Fetch answers, subtopics, topics in parallel
   const [answersRes, subtopicsRes, topicsRes] = await Promise.all([
     sessionIds.length > 0
       ? supabase
@@ -66,19 +76,21 @@ export async function getProgressData(userId: string) {
     sessionMap[s.id] = s;
   }
 
-  // 1. Score history: cumulative score by date
-  const dailyScores: Record<string, number> = {};
-  for (const s of sessions) {
-    const date = s.created_at.split("T")[0];
-    dailyScores[date] = (dailyScores[date] ?? 0) + s.score;
-  }
-  let cumulative = 0;
-  const cumulativeScoreHistory = Object.entries(dailyScores)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, dailyScore]) => {
-      cumulative += dailyScore;
-      return { date, score: cumulative };
-    });
+  // 1. Score history: GMAT composite over time from full test attempts
+  const { data: gmatAttempts } = await db
+    .from("full_gmat_attempts")
+    .select("total_score, completed_at")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: true });
+
+  const typedAttempts: { total_score: number | null; completed_at: string | null }[] = gmatAttempts ?? [];
+  const scoreHistory = typedAttempts
+    .filter((a) => a.total_score != null && a.completed_at != null)
+    .map((a) => ({
+      date: a.completed_at!.split("T")[0],
+      score: a.total_score as number,
+    }));
 
   // 2. Accuracy by difficulty
   const difficultyStats: Record<string, { total: number; correct: number }> = {};
@@ -150,8 +162,13 @@ export async function getProgressData(userId: string) {
   const totalScore = sessions.reduce((sum, s) => sum + s.score, 0);
   const sessionCount = sessions.length;
 
-  // 6. Section scores
-  const sectionStats: Record<string, { total: number; correct: number }> = {};
+  // 6. GMAT section scores (verbal / quantitative / data_insights)
+  const sectionStats: Record<string, { total: number; correct: number }> = {
+    verbal: { total: 0, correct: 0 },
+    quantitative: { total: 0, correct: 0 },
+    data_insights: { total: 0, correct: 0 },
+  };
+
   for (const ans of answers) {
     const session = sessionMap[ans.session_id];
     if (!session || !session.subtopic_id) continue;
@@ -160,39 +177,34 @@ export async function getProgressData(userId: string) {
     const topic = topicMap[subtopic.topic_id];
     if (!topic) continue;
     const subject = topic.subject;
-    if (!sectionStats[subject]) sectionStats[subject] = { total: 0, correct: 0 };
-    sectionStats[subject].total++;
-    if (ans.is_correct) sectionStats[subject].correct++;
+    // Map legacy SAT subjects to GMAT equivalents
+    const gmatSubject =
+      subject === "math" || subject === "quantitative"
+        ? "quantitative"
+        : subject === "reading_writing" || subject === "english" || subject === "verbal"
+        ? "verbal"
+        : subject === "data_insights"
+        ? "data_insights"
+        : null;
+    if (!gmatSubject) continue;
+    sectionStats[gmatSubject].total++;
+    if (ans.is_correct) sectionStats[gmatSubject].correct++;
   }
 
-  const sections = Object.entries(sectionStats).map(([subject, stats]) => {
-    const accuracy = stats.total > 0 ? stats.correct / stats.total : 0;
-    const scaledScore = Math.round(200 + accuracy * 600);
-    return {
-      subject,
-      total: stats.total,
-      correct: stats.correct,
-      accuracy: stats.total > 0 ? Math.round(accuracy * 100) : 0,
-      scaledScore: Math.min(scaledScore, 800),
-    };
-  });
+  const verbalScaled = scaleSection(sectionStats.verbal.correct, sectionStats.verbal.total);
+  const quantScaled = scaleSection(sectionStats.quantitative.correct, sectionStats.quantitative.total);
+  const diScaled = scaleSection(sectionStats.data_insights.correct, sectionStats.data_insights.total);
 
-  const rwSection = sections.find((s) => s.subject === "english") ?? {
-    subject: "english",
-    total: 0,
-    correct: 0,
-    accuracy: 0,
-    scaledScore: 0,
-  };
-  const mathSection = sections.find((s) => s.subject === "math") ?? {
-    subject: "math",
-    total: 0,
-    correct: 0,
-    accuracy: 0,
-    scaledScore: 0,
-  };
+  const gmatScores = computeFullGmatScore(
+    sectionStats.verbal.correct,
+    sectionStats.quantitative.correct,
+    sectionStats.data_insights.correct,
+    sectionStats.verbal.total || 23,
+    sectionStats.quantitative.total || 21,
+    sectionStats.data_insights.total || 20,
+  );
 
-  // Topic mastery
+  // 7. Topic mastery
   const MASTERY_THRESHOLD = 0.7;
   const MIN_QUESTIONS = 5;
 
@@ -211,8 +223,62 @@ export async function getProgressData(userId: string) {
 
   const masteredCount = topicMasteryList.filter((s) => s.mastered).length;
 
+  // 8. Activity calendar — count sessions per date (last 364 days)
+  const activityMap: Record<string, number> = {};
+  for (const s of sessions) {
+    const dateKey = s.created_at.split("T")[0];
+    activityMap[dateKey] = (activityMap[dateKey] ?? 0) + 1;
+  }
+  const activityCalendar = Object.entries(activityMap).map(([date, count]) => ({ date, count }));
+
+  // 9. Question-type breakdown from problems table
+  const GMAT_QUESTION_TYPES = [
+    { type: "critical_reasoning", label: "Critical Reasoning" },
+    { type: "reading_comprehension", label: "Reading Comprehension" },
+    { type: "problem_solving", label: "Problem Solving" },
+    { type: "data_sufficiency", label: "Data Sufficiency" },
+    { type: "multi_source_reasoning", label: "Multi-Source Reasoning" },
+    { type: "table_analysis", label: "Table Analysis" },
+    { type: "graphics_interpretation", label: "Graphics Interpretation" },
+    { type: "two_part_analysis", label: "Two-Part Analysis" },
+  ];
+
+  const qtStats: Record<string, { total: number; correct: number }> = {};
+  if (problemIds.length > 0) {
+    const { data: problemsWithType } = await (supabase as any)
+      .from("problems")
+      .select("id, question_type")
+      .in("id", problemIds);
+
+    const qtMap: Record<string, string> = {};
+    for (const p of (problemsWithType ?? []) as { id: string; question_type: string | null }[]) {
+      if (p.question_type) qtMap[p.id] = p.question_type;
+    }
+
+    for (const ans of answers) {
+      const qt = qtMap[ans.problem_id];
+      if (!qt) continue;
+      if (!qtStats[qt]) qtStats[qt] = { total: 0, correct: 0 };
+      qtStats[qt].total++;
+      if (ans.is_correct) qtStats[qt].correct++;
+    }
+  }
+
+  const questionTypePerformance = GMAT_QUESTION_TYPES
+    .filter((qt) => qtStats[qt.type])
+    .map((qt) => {
+      const s = qtStats[qt.type];
+      return {
+        type: qt.type,
+        label: qt.label,
+        total: s.total,
+        correct: s.correct,
+        accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0,
+      };
+    });
+
   return {
-    scoreHistory: cumulativeScoreHistory,
+    scoreHistory,
     accuracyByDifficulty,
     topicPerformance: allTopicPerformance,
     recentSessions,
@@ -224,13 +290,38 @@ export async function getProgressData(userId: string) {
       avgScore: sessionCount > 0 ? Math.round(totalScore / sessionCount) : 0,
     },
     sectionScores: {
-      readingWriting: rwSection,
-      math: mathSection,
+      verbal: {
+        subject: "verbal",
+        total: sectionStats.verbal.total,
+        correct: sectionStats.verbal.correct,
+        accuracy: sectionStats.verbal.total > 0
+          ? Math.round((sectionStats.verbal.correct / sectionStats.verbal.total) * 100) : 0,
+        scaledScore: verbalScaled,
+      },
+      quantitative: {
+        subject: "quantitative",
+        total: sectionStats.quantitative.total,
+        correct: sectionStats.quantitative.correct,
+        accuracy: sectionStats.quantitative.total > 0
+          ? Math.round((sectionStats.quantitative.correct / sectionStats.quantitative.total) * 100) : 0,
+        scaledScore: quantScaled,
+      },
+      dataInsights: {
+        subject: "data_insights",
+        total: sectionStats.data_insights.total,
+        correct: sectionStats.data_insights.correct,
+        accuracy: sectionStats.data_insights.total > 0
+          ? Math.round((sectionStats.data_insights.correct / sectionStats.data_insights.total) * 100) : 0,
+        scaledScore: diScaled,
+      },
+      compositeScore: gmatScores.total,
     },
     topicMastery: {
       items: topicMasteryList,
       masteredCount,
       totalCount: topicMasteryList.length,
     },
+    activityCalendar,
+    questionTypePerformance,
   };
 }

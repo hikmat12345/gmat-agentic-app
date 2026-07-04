@@ -14,8 +14,13 @@ function mapUser(row: any) {
     onboardingCompleted: row.onboarding_completed,
     startComposite: row.start_composite,
     currentComposite: row.current_composite,
+    // Legacy SAT columns
     currentReadingWriting: row.current_reading_writing,
     currentMath: row.current_math,
+    // GMAT section scores (60-90)
+    currentVerbal: row.current_verbal ?? null,
+    currentQuantitative: row.current_quantitative ?? null,
+    currentDataInsights: row.current_data_insights ?? null,
     totalXp: row.total_xp,
     timezone: row.timezone,
     createdAt: new Date(row.created_at),
@@ -68,8 +73,13 @@ export async function updateUser(
     onboardingCompleted: boolean;
     startComposite: number;
     currentComposite: number;
+    // Legacy SAT
     currentReadingWriting: number;
     currentMath: number;
+    // GMAT section scores
+    currentVerbal: number;
+    currentQuantitative: number;
+    currentDataInsights: number;
     totalXp: number;
     timezone: string;
   }>
@@ -84,6 +94,9 @@ export async function updateUser(
   if (data.currentComposite !== undefined) update.current_composite = data.currentComposite;
   if (data.currentReadingWriting !== undefined) update.current_reading_writing = data.currentReadingWriting;
   if (data.currentMath !== undefined) update.current_math = data.currentMath;
+  if (data.currentVerbal !== undefined) update.current_verbal = data.currentVerbal;
+  if (data.currentQuantitative !== undefined) update.current_quantitative = data.currentQuantitative;
+  if (data.currentDataInsights !== undefined) update.current_data_insights = data.currentDataInsights;
   if (data.totalXp !== undefined) update.total_xp = data.totalXp;
   if (data.timezone !== undefined) update.timezone = data.timezone;
 

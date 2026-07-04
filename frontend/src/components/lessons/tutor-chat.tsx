@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Send, Mic, Keyboard, Sparkles } from "lucide-react";
+import { Send, Mic, Keyboard, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAthenaConversation } from "@/hooks/use-athena-conversation";
 import { MessageBubble } from "./message-bubble";
@@ -165,7 +165,7 @@ export function TutorChat({
           {/* Empty state */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Sparkles className="h-8 w-8 text-athena-amber opacity-60" />
+              <Brain className="h-8 w-8 text-athena-amber opacity-60" />
               <p className="text-sm text-muted-foreground text-center">
                 Ask Athena anything about this lesson.
               </p>

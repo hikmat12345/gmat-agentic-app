@@ -1,12 +1,24 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { getUserByClerkId } from "@/lib/db/queries/users";
+import { requirePremium } from "@/lib/subscription";
 
 const AGENT_URL = process.env.AGENT_SERVICE_URL || "http://localhost:8080";
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await getUserByClerkId(clerkId);
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const access = await requirePremium(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: "Premium subscription required" }, { status: 403 });
   }
 
   const body = await req.json();

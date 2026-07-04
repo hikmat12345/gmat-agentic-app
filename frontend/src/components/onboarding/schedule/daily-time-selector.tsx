@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Clock, Swords } from "lucide-react";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DAYS } from "@/lib/schedule-utils";
 
@@ -55,6 +55,7 @@ function addHour(time: string): string {
 
 export function DailyTimeSelector() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [activeDays, setActiveDays] = useState<Set<DayOfWeek>>(
     new Set(DEFAULT_DAYS)
   );
@@ -102,6 +103,8 @@ export function DailyTimeSelector() {
 
       if (!res.ok) throw new Error("Failed to save");
 
+      // Flush stale user cache so dashboard reads onboardingCompleted=true
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
       toast.success("Schedule saved!");
       router.push("/onboarding/complete");
     } catch {
@@ -117,7 +120,10 @@ export function DailyTimeSelector() {
         if (!r.ok) throw new Error("Failed");
         return r.json();
       }),
-    onSuccess: () => router.push("/onboarding/complete"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.push("/onboarding/complete");
+    },
     onError: () => toast.error("Something went wrong. Please try again."),
   });
 
@@ -138,7 +144,7 @@ export function DailyTimeSelector() {
         Pick a time and days you can show up consistently.
       </p>
       <p className="mb-8 text-center text-sm text-muted-foreground">
-        ⚡ Students who set a fixed schedule score 2× faster
+        ⚡ Test-takers with a fixed schedule reach their target GMAT score in half the time
       </p>
 
       {/* Day circles */}
@@ -189,10 +195,9 @@ export function DailyTimeSelector() {
       <button
         onClick={handleSubmit}
         disabled={submitting || activeDays.size === 0 || !selectedTime}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-muted py-4 text-base font-semibold text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-4 text-base font-semibold text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
       >
-        <Swords className="h-5 w-5" />
-        {submitting ? "Saving..." : "Start Your Quest"}
+        {submitting ? "Saving..." : "Save Schedule"}
       </button>
 
       {/* Skip button */}

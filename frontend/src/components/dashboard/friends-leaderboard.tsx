@@ -80,7 +80,7 @@ export function FriendsLeaderboard({ friends }: { friends: FriendScore[] }) {
                   {friend.totalScore}
                 </p>
                 {friend.weeklyDelta > 0 && (
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     +{friend.weeklyDelta}
                   </p>
                 )}

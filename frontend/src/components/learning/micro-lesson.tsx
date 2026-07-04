@@ -5,20 +5,22 @@ import type { WhiteboardStep, CheckInAction, PredictAction, FillBlankAction } fr
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Sparkles, ChevronLeft, BookOpen, ChevronRight, Check, X,
-  Send, Mic, Keyboard, CheckCircle,
+  Brain, ChevronLeft, BookOpen, ChevronRight, Check, X,
+  Send, Mic, CheckCircle, Volume2, VolumeX, SkipForward, SkipBack,
+  Play, Pause,
 } from "lucide-react";
 import { useMicroLesson } from "@/hooks/use-micro-lesson";
 import { useLessonChat } from "@/hooks/use-lesson-chat";
 import { WhiteboardCanvas } from "@/components/whiteboard/whiteboard-canvas";
+import { PresenceLayer } from "@/components/learning/observation/presence-layer";
+import type { BoardPoint, StepFocus } from "@/components/whiteboard/pen-tip";
+import { isDiagramStep } from "@/components/whiteboard/pen-tip";
 import { WbCoordinatePlane } from "@/components/whiteboard/elements/wb-coordinate-plane";
 import { WbGeometry } from "@/components/whiteboard/elements/wb-geometry";
 import type { CoordinatePlaneAction, GeometryAction } from "@/types/whiteboard";
 import { useStepPlayer } from "@/hooks/use-step-player";
 import { MessageBubble } from "@/components/lessons/message-bubble";
 import { ThinkingIndicator } from "@/components/lessons/thinking-indicator";
-import { VoiceOrb } from "@/components/lessons/voice-orb";
-import PixelCharacter from "@/components/shared/PixelCharacter";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSound } from "@/hooks/useSound";
@@ -59,6 +61,36 @@ type MicroLessonProps = {
     subtopicId: string;
   };
 };
+
+// ── Circular control button ───────────────────────────────────────────
+
+function CircleBtn({
+  icon, active, onClick, title, disabled,
+}: {
+  icon: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  title?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all",
+        active
+          ? "border-athena-amber bg-athena-amber/20 text-athena-amber"
+          : "border-border/60 bg-background text-muted-foreground hover:border-border hover:text-foreground",
+        disabled && "opacity-40 cursor-not-allowed pointer-events-none",
+      )}
+    >
+      {icon}
+    </button>
+  );
+}
 
 // ── Check-in question UI ──────────────────────────────────────────────
 
@@ -121,6 +153,7 @@ function CheckInCard({
   const [phase, setPhase] = useState<"answering" | "hinted" | "detailed" | "revealed">("answering");
   const [selected, setSelected] = useState<number | null>(null);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
+  const [justWrong, setJustWrong] = useState<number | null>(null);
   const sound = useSound();
 
   const isCorrect = selected === checkIn.correctOption;
@@ -128,14 +161,14 @@ function CheckInCard({
 
   const handleSelect = (index: number) => {
     if (isRevealed) return;
-    if (wrongIndices.has(index)) return; // can't re-pick a wrong answer
+    if (wrongIndices.has(index)) return;
 
     setSelected(index);
 
     if (index === checkIn.correctOption) {
       sound.achievement();
       setPhase("revealed");
-      onNarrate?.("Correct! Let's move on.");
+      onNarrate?.(checkIn.explanation || "That's exactly right.");
       return;
     }
 
@@ -144,20 +177,21 @@ function CheckInCard({
     const next = new Set(wrongIndices);
     next.add(index);
     setWrongIndices(next);
+    setJustWrong(index);
+    setTimeout(() => setJustWrong(null), 2000);
 
     if (phase === "answering" && checkIn.hint) {
-      // 1st wrong + hint available: nudge hint, allow retry
       setPhase("hinted");
       onHintPhase?.("hinted");
       onNarrate?.(checkIn.hint);
     } else if (phase === "hinted" && checkIn.detailedHint) {
-      // 2nd wrong + detailed hint available: walk-through hint, allow retry
       setPhase("detailed");
       onHintPhase?.("detailed");
       onNarrate?.(checkIn.detailedHint);
     } else {
-      // No more hints available: reveal answer
       setPhase("revealed");
+      // Reveal with explanation even when no more attempts
+      onNarrate?.(checkIn.explanation || "Here is the correct answer.");
     }
   };
 
@@ -166,12 +200,12 @@ function CheckInCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-2 relative"
+      className="space-y-3 relative"
     >
       {isRevealed && isCorrect && <CheckInConfetti />}
-      <p className="text-sm font-medium text-foreground">{checkIn.question}</p>
+      <p className="text-lg font-semibold text-foreground leading-snug mb-4">{checkIn.question}</p>
 
-      <div className="grid gap-1.5">
+      <div className="flex flex-col gap-2">
         {checkIn.options.map((option, i) => {
           const isThis = selected === i;
           const isRight = i === checkIn.correctOption;
@@ -182,20 +216,33 @@ function CheckInCard({
               onClick={() => handleSelect(i)}
               disabled={isRevealed || isWrong}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors",
-                !isRevealed && !isWrong && "hover:bg-muted cursor-pointer",
-                isRevealed && isRight && "border-green-500 bg-green-500/10",
-                isRevealed && isThis && !isRight && "border-red-500 bg-red-500/10",
-                isRevealed && !isThis && !isRight && "opacity-50",
-                isWrong && !isRevealed && "border-red-500/50 bg-red-500/5 opacity-60",
+                "relative flex w-full items-center gap-2 rounded-xl border px-4 py-3 text-sm transition-all overflow-hidden text-left",
+                !isRevealed && !isWrong && "hover:bg-muted/80 hover:border-border/80 cursor-pointer",
+                isRevealed && isRight && "border-green-500/70 bg-green-500/10",
+                isRevealed && isThis && !isRight && "border-red-500/70 bg-red-500/10",
+                isRevealed && !isThis && !isRight && "opacity-40",
+                isWrong && !isRevealed && "border-red-500/30 bg-red-500/5 opacity-50",
               )}
               style={
                 isRevealed && isRight
-                  ? { boxShadow: "0 0 12px rgba(34, 197, 94, 0.3)" }
+                  ? { boxShadow: "0 0 0 1px rgba(34,197,94,0.5), 0 0 20px rgba(34,197,94,0.12)" }
                   : undefined
               }
             >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
+              {/* Red flash on wrong selection */}
+              {justWrong === i && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl bg-red-500/30 pointer-events-none"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 2, ease: "easeOut" }}
+                />
+              )}
+              <span className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
+                isRevealed && isRight && "border-green-500 text-green-500",
+                ((isRevealed && isThis && !isRight) || isWrong) && "border-red-500 text-red-500",
+              )}>
                 {isRevealed && isRight ? (
                   <Check className="h-3 w-3 text-green-500" />
                 ) : (isRevealed && isThis && !isRight) || isWrong ? (
@@ -204,7 +251,7 @@ function CheckInCard({
                   String.fromCharCode(65 + i)
                 )}
               </span>
-              {option}
+              <span>{option}</span>
             </button>
           );
         })}
@@ -214,12 +261,12 @@ function CheckInCard({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-athena-amber/40 bg-athena-amber/10 px-3 py-2"
+          className="rounded-xl border border-athena-amber/40 bg-athena-amber/[0.08] px-4 py-3"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-athena-amber mb-0.5">
-            Not quite! Here&apos;s a hint:
+          <p className="text-xs font-bold uppercase tracking-wider text-athena-amber mb-1">
+            Not quite — here&apos;s a clue:
           </p>
-          <p className="text-sm text-muted-foreground">{checkIn.hint}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{checkIn.hint}</p>
         </motion.div>
       )}
 
@@ -227,34 +274,34 @@ function CheckInCard({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2"
+          className="rounded-xl border border-blue-500/40 bg-blue-500/[0.08] px-4 py-3"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-0.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-1">
             Let me walk you through it:
           </p>
-          <p className="text-sm text-muted-foreground">{checkIn.detailedHint}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{checkIn.detailedHint}</p>
         </motion.div>
       )}
 
       {isRevealed && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="space-y-1.5"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-1 space-y-3"
         >
           {isCorrect && (
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="flex items-center gap-1.5 text-green-500"
+              className="flex items-center gap-2 text-green-500"
             >
-              <Check className="h-4 w-4" />
-              <span className="text-sm font-bold">Correct!</span>
+              <Check className="h-5 w-5" />
+              <span className="text-base font-bold">Correct!</span>
             </motion.div>
           )}
-          <p className="text-xs text-muted-foreground">{checkIn.explanation}</p>
-          <Button size="xs" className="gap-1" onClick={onAnswer}>
+          <p className="text-sm text-muted-foreground leading-relaxed">{checkIn.explanation}</p>
+          <Button size="sm" className="gap-1.5" onClick={onAnswer}>
             {isCorrect ? "Continue" : "Got it, continue"}
             <ChevronRight className="h-3.5 w-3.5" />
           </Button>
@@ -279,6 +326,7 @@ function PredictCard({
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
+  const [justWrong, setJustWrong] = useState<number | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const answeredRef = useRef(false);
@@ -293,7 +341,7 @@ function PredictCard({
     if (index === predict.correctOption) {
       sound.achievement();
       setRevealed(true);
-      onNarrate?.("Correct! Let's move on.");
+      onNarrate?.(predict.explanation || "That's exactly right.");
       return;
     }
 
@@ -302,6 +350,8 @@ function PredictCard({
     const next = new Set(wrongIndices);
     next.add(index);
     setWrongIndices(next);
+    setJustWrong(index);
+    setTimeout(() => setJustWrong(null), 2000);
 
     // Show hint after first wrong if available
     if (predict.hint && !showHint) {
@@ -333,9 +383,9 @@ function PredictCard({
       transition={{ duration: 0.25 }}
       className="space-y-2 relative"
     >
-      <p className="text-sm font-medium text-foreground">{predict.question}</p>
+      <p className="text-lg font-semibold text-foreground leading-snug mb-4">{predict.question}</p>
 
-      <div className="grid gap-1.5">
+      <div className="flex  gap-2">
         {predict.options.map((option, i) => {
           const isThis = selected === i;
           const isRight = i === predict.correctOption;
@@ -346,15 +396,28 @@ function PredictCard({
               onClick={() => handleSelect(i)}
               disabled={revealed || isWrong}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors",
-                !revealed && !isWrong && "hover:bg-muted cursor-pointer",
-                revealed && isRight && "border-green-500 bg-green-500/10",
-                revealed && isThis && !isRight && "border-red-500 bg-red-500/10",
-                revealed && !isThis && !isRight && "opacity-50",
-                isWrong && !revealed && "border-red-500/50 bg-red-500/5 opacity-60",
+                "relative flex w-full items-center gap-2 rounded-xl border px-4 py-3 text-sm transition-all overflow-hidden text-left",
+                !revealed && !isWrong && "hover:bg-muted/80 hover:border-border/80 cursor-pointer",
+                revealed && isRight && "border-green-500/70 bg-green-500/10",
+                revealed && isThis && !isRight && "border-red-500/70 bg-red-500/10",
+                revealed && !isThis && !isRight && "opacity-40",
+                isWrong && !revealed && "border-red-500/30 bg-red-500/5 opacity-50",
               )}
             >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
+              {/* Red flash on wrong selection */}
+              {justWrong === i && (
+                <motion.div
+                  className="absolute inset-0 rounded-xl bg-red-500/30 pointer-events-none"
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 2, ease: "easeOut" }}
+                />
+              )}
+              <span className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
+                revealed && isRight && "border-green-500 text-green-500",
+                ((revealed && isThis && !isRight) || isWrong) && "border-red-500 text-red-500",
+              )}>
                 {revealed && isRight ? (
                   <Check className="h-3 w-3 text-green-500" />
                 ) : (revealed && isThis && !isRight) || isWrong ? (
@@ -363,7 +426,7 @@ function PredictCard({
                   String.fromCharCode(65 + i)
                 )}
               </span>
-              {option}
+              <span>{option}</span>
             </button>
           );
         })}
@@ -373,33 +436,33 @@ function PredictCard({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-athena-amber/40 bg-athena-amber/10 px-3 py-2"
+          className="rounded-xl border border-athena-amber/40 bg-athena-amber/[0.08] px-4 py-3"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-athena-amber mb-0.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-athena-amber mb-1">
             Think about it:
           </p>
-          <p className="text-sm text-muted-foreground">{predict.hint}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{predict.hint}</p>
         </motion.div>
       )}
 
       {revealed && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="space-y-1.5"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-1 space-y-2"
         >
           {isCorrect && (
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="flex items-center gap-1.5 text-green-500"
+              className="flex items-center gap-2 text-green-500"
             >
-              <Check className="h-4 w-4" />
-              <span className="text-sm font-bold">Correct</span>
+              <Check className="h-5 w-5" />
+              <span className="text-base font-bold">Correct</span>
             </motion.div>
           )}
-          <p className="text-xs text-muted-foreground">{predict.explanation}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{predict.explanation}</p>
         </motion.div>
       )}
     </motion.div>
@@ -461,7 +524,7 @@ function FillBlankCard({
     if (isCorrect) {
       sound.achievement();
       setPhase("revealed");
-      onNarrate?.("Correct! Let's move on.");
+      onNarrate?.(fillBlank.explanation || "That's exactly right.");
       return;
     }
 
@@ -502,7 +565,7 @@ function FillBlankCard({
       transition={{ duration: 0.25 }}
       className="space-y-2"
     >
-      <div className="text-sm font-medium text-foreground">
+      <div className="text-base font-semibold text-foreground mb-3">
         <MathContent content={fillBlank.prompt} />
       </div>
 
@@ -518,10 +581,10 @@ function FillBlankCard({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") checkAnswer(); }}
-            placeholder="Type your answer..."
-            className="flex-1 bg-muted/50 rounded-lg text-sm outline-none placeholder:text-muted-foreground py-2 px-3 border focus:border-athena-amber/50 transition-colors"
+            placeholder="Type your answer…"
+            className="flex-1 bg-muted/60 rounded-xl text-sm outline-none placeholder:text-muted-foreground py-3 px-4 border border-transparent focus:border-athena-amber/50 transition-colors"
           />
-          <Button size="sm" onClick={checkAnswer} disabled={!input.trim()}>
+          <Button size="default" onClick={checkAnswer} disabled={!input.trim()} className="shrink-0">
             Check
           </Button>
         </motion.div>
@@ -532,12 +595,12 @@ function FillBlankCard({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-athena-amber/40 bg-athena-amber/10 px-3 py-2"
+          className="rounded-xl border border-athena-amber/40 bg-athena-amber/[0.08] px-4 py-3"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-athena-amber mb-0.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-athena-amber mb-1">
             Think about it:
           </p>
-          <p className="text-sm text-muted-foreground">{fillBlank.hint}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{fillBlank.hint}</p>
         </motion.div>
       )}
 
@@ -546,37 +609,37 @@ function FillBlankCard({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2"
+          className="rounded-xl border border-blue-500/40 bg-blue-500/[0.08] px-4 py-3"
         >
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-0.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-1">
             Let me walk you through it:
           </p>
-          <p className="text-sm text-muted-foreground">{fillBlank.detailedHint}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{fillBlank.detailedHint}</p>
         </motion.div>
       )}
 
       {isRevealed && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="space-y-1.5"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-1 space-y-3"
         >
           {isCorrect ? (
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="flex items-center gap-1.5 text-green-500"
+              className="flex items-center gap-2 text-green-500"
             >
-              <Check className="h-4 w-4" />
-              <span className="text-sm font-bold">Correct</span>
+              <Check className="h-5 w-5" />
+              <span className="text-base font-bold">Correct</span>
             </motion.div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Answer: <span className="font-medium text-foreground">{fillBlank.acceptedAnswers[0]}</span>
+              Answer: <span className="font-semibold text-foreground">{fillBlank.acceptedAnswers[0]}</span>
             </p>
           )}
-          <p className="text-xs text-muted-foreground">{fillBlank.explanation}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{fillBlank.explanation}</p>
         </motion.div>
       )}
     </motion.div>
@@ -620,7 +683,13 @@ export function MicroLesson({
     currentPrediction,
     currentFillBlank,
     advance,
+    goBack,
   } = useStepPlayer(whiteboardSteps, isWhiteboardStreaming);
+
+  // Ref so the auto-advance effect can read the latest steps without
+  // re-firing every time streaming delivers a new step (new array ref).
+  const whiteboardStepsRef = useRef(whiteboardSteps);
+  whiteboardStepsRef.current = whiteboardSteps;
 
   // ── "Why?" modal state ──────────────────────────────────────────────
   const [whyModalOpen, setWhyModalOpen] = useState(false);
@@ -634,6 +703,10 @@ export function MicroLesson({
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0);
   const [isPracticeLoading, setIsPracticeLoading] = useState(false);
   const prefetchedRef = useRef(false);
+
+  // ── Orb presence refs ────────────────────────────────────────────────
+  const penClientRef = useRef<BoardPoint | null>(null);
+  const stepFocusRef = useRef<StepFocus | null>(null);
 
   const activePracticeProblems = providedPracticeProblems ?? fetchedPracticeProblems;
   const currentPracticeProblem = activePracticeProblems[currentProblemIndex] ?? null;
@@ -674,12 +747,27 @@ export function MicroLesson({
     fetchPracticeProblems();
   }, [userStepIndex, whiteboardSteps.length, fetchPracticeProblems, providedPracticeProblems]);
 
+  // ── Playback pause state ─────────────────────────────────────────────
+
+  const [isPaused, setIsPaused] = useState(false);
+  const togglePause = useCallback(() => {
+    setIsPaused((p) => {
+      const next = !p;
+      if (next) {
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+        if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+        setIsNarrating(false);
+        setIsTtsLoading(false);
+      }
+      return next;
+    });
+  }, []);
+
   // ── Chat state ───────────────────────────────────────────────────────
 
   const [isChatting, setIsChatting] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
-  const contentScrollRef = useRef<HTMLDivElement>(null);
   const chatTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const chat = useLessonChat({
@@ -772,6 +860,11 @@ export function MicroLesson({
 
   const [isNarrating, setIsNarrating] = useState(false);
   const [isTtsLoading, setIsTtsLoading] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const isMutedRef = useRef(false);
+  isMutedRef.current = isMuted;
+  const isPausedRef = useRef(false);
+  isPausedRef.current = isPaused;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const advanceRef = useRef(wrappedAdvance);
   advanceRef.current = wrappedAdvance;
@@ -785,6 +878,21 @@ export function MicroLesson({
     generateLesson();
   }, [generateLesson]);
 
+  // ── Stop audio when muted ────────────────────────────────────────────
+
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      if (next) {
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+        if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+        setIsNarrating(false);
+        setIsTtsLoading(false);
+      }
+      return next;
+    });
+  }, []);
+
   // ── Pause lesson when chat opens ─────────────────────────────────────
 
   useEffect(() => {
@@ -793,6 +901,7 @@ export function MicroLesson({
         audioRef.current.pause();
         audioRef.current = null;
       }
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
       setIsNarrating(false);
       setIsTtsLoading(false);
     }
@@ -819,10 +928,38 @@ export function MicroLesson({
       audioRef.current.pause();
       audioRef.current = null;
     }
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     if (isChattingRef.current || !text) return;
+    if (isMutedRef.current) return;
+    if (isPausedRef.current) return;
 
     setIsTtsLoading(true);
     let cancelled = false;
+
+    const useSpeechFallback = () => {
+      if (cancelled || isMutedRef.current || typeof window === "undefined" || !window.speechSynthesis) {
+        setIsTtsLoading(false);
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.92;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      // Prefer a natural English voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang.startsWith("en") && /google|samantha|karen|moira|daniel/i.test(v.name))
+        || voices.find(v => v.lang.startsWith("en-US"))
+        || voices.find(v => v.lang.startsWith("en"));
+      if (preferred) utterance.voice = preferred;
+
+      utterance.onstart = () => {
+        if (!cancelled && !isMutedRef.current) { setIsTtsLoading(false); setIsNarrating(true); }
+      };
+      utterance.onend = () => { if (!cancelled) setIsNarrating(false); };
+      utterance.onerror = () => { if (!cancelled) { setIsTtsLoading(false); setIsNarrating(false); } };
+
+      window.speechSynthesis.speak(utterance);
+    };
 
     const run = async () => {
       try {
@@ -831,8 +968,10 @@ export function MicroLesson({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
         });
-        if (cancelled || !res.ok) {
-          if (!cancelled) { setIsTtsLoading(false); setIsNarrating(false); }
+        if (cancelled) return;
+        if (!res.ok) {
+          // ElevenLabs not configured — fall back to browser TTS
+          useSpeechFallback();
           return;
         }
         const blob = await res.blob();
@@ -853,10 +992,10 @@ export function MicroLesson({
           if (!cancelled) setIsNarrating(false);
         };
 
-        if (cancelled || isChattingRef.current) return;
+        if (cancelled || isChattingRef.current || isMutedRef.current) return;
 
         audio.play().then(() => {
-          if (!cancelled && !isChattingRef.current) {
+          if (!cancelled && !isChattingRef.current && !isMutedRef.current) {
             setIsTtsLoading(false);
             setIsNarrating(true);
           }
@@ -866,12 +1005,15 @@ export function MicroLesson({
           if (!cancelled) { setIsTtsLoading(false); setIsNarrating(false); }
         });
       } catch {
-        if (!cancelled) { setIsTtsLoading(false); setIsNarrating(false); }
+        if (!cancelled) useSpeechFallback();
       }
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    };
   }, []);
 
   // Auto-narrate all steps on arrival:
@@ -884,6 +1026,7 @@ export function MicroLesson({
     }
     if (isChattingRef.current) return;
     if (whyModalOpenRef.current) return;
+    if (isPaused) return;
 
     const step = whiteboardSteps[userStepIndex];
     if (!step) return;
@@ -912,12 +1055,14 @@ export function MicroLesson({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userStepIndex, playNarration]);
+  }, [userStepIndex, isPaused, playNarration]);
 
   // ── Auto-advance teaching steps when narration + animation done ─────
 
   useEffect(() => {
-    const step = whiteboardSteps[userStepIndex];
+    // Use ref so this effect doesn't re-fire every time streaming delivers
+    // a new step (each new step is a new array reference).
+    const step = whiteboardStepsRef.current[userStepIndex];
     if (!step) return;
     // Only auto-advance teaching steps (not interactions)
     const t = step.action.type;
@@ -926,10 +1071,11 @@ export function MicroLesson({
     if (isChatting) return;
     if (whyModalOpen) return;
 
-    if (playerState === "waiting" && !isNarrating && !isTtsLoading) {
+    if (playerState === "waiting" && !isNarrating && !isTtsLoading && !isPaused) {
       advanceRef.current();
     }
-  }, [playerState, isNarrating, isTtsLoading, isLastStep, isChatting, whyModalOpen, userStepIndex, whiteboardSteps]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerState, isNarrating, isTtsLoading, isLastStep, isChatting, whyModalOpen, userStepIndex, isPaused]);
 
   // Callback for predict/fill_blank: play narration after student answers, then advance after delay
   const handleInteractionAnswer = useCallback(() => {
@@ -962,6 +1108,7 @@ export function MicroLesson({
         audioRef.current.pause();
         audioRef.current = null;
       }
+      if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     };
   }, []);
 
@@ -985,29 +1132,6 @@ export function MicroLesson({
     }
   }, [chat.chatMessages]);
 
-  // Auto-scroll left panel when content changes (new narration, hint/explanation appear)
-  useEffect(() => {
-    const el = contentScrollRef.current;
-    if (!el || isChatting) return;
-
-    let timer: ReturnType<typeof setTimeout>;
-    const scrollToBottom = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (el.scrollHeight > el.clientHeight) {
-          el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-        }
-      }, 80);
-    };
-
-    const observer = new MutationObserver(scrollToBottom);
-    observer.observe(el, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      clearTimeout(timer);
-    };
-  }, [isChatting]);
 
   const handleChatSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -1046,530 +1170,329 @@ export function MicroLesson({
   const emptyVisibleIds = useMemo(() => new Set<number>(), []);
   const isPracticeCanvas = (lessonPhase === "practice" || lessonPhase === "complete") && !isChatting;
 
-  const voiceOrbState: "idle" | "listening" | "processing" | "speaking" =
-    chat.isRecording ? "listening" : chat.isProcessing ? "processing" : chat.isSpeaking ? "speaking" : "idle";
-
   // ── Generating state ──────────────────────────────────────────────
   const isGenerating = phase === "generating" && whiteboardSteps.length === 0;
 
-  // ── Character state ────────────────────────────────────────────────
-  const pixelEmotion: "neutral" | "happy" | "thinking" | "encouraging" = isGenerating
-    ? "thinking"
-    : isChatting
-      ? (chat.isProcessing ? "thinking" : chat.isChatNarrating ? "happy" : "neutral")
-      : lessonPhase === "practice" || lessonPhase === "complete"
-        ? "encouraging"
-        : isInteraction
-          ? "encouraging"
-          : isTtsLoading
-            ? "thinking"
-            : isNarrating
-              ? "happy"
-              : "neutral";
-  const pixelTalking = isNarrating || chat.isChatNarrating;
-  const pixelLoading = isTtsLoading && !pixelTalking;
 
+  // ── Orb derived state ─────────────────────────────────────────────────
+  const currentLessonStep = whiteboardSteps[currentStepIndex];
+  const orbMode = (
+    !isChatting &&
+    lessonPhase === "lesson" &&
+    isDiagramStep(currentLessonStep) &&
+    stepProgress < 1
+  ) ? "draw" : "rest";
+  const orbState: "idle" | "thinking" | "speaking" | "listening" = isNarrating
+    ? "speaking"
+    : isTtsLoading
+      ? "thinking"
+      : "idle";
+  // Caption shows narration while the lesson is active
+  const orbCaption = (!isChatting && lessonPhase === "lesson") ? (currentDisplayText || null) : null;
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1 text-muted-foreground hover:text-foreground"
-            onClick={onClose}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <div className="h-4 w-px bg-border" />
-          <BookOpen className="h-4 w-4 text-athena-amber" />
-          <h3 className="text-sm font-semibold">
-            {lessonPhase === "practice" || lessonPhase === "complete"
-              ? `Practice: ${subtopic}`
-              : `Micro-Lesson: ${subtopic}`}
-          </h3>
-          {phase === "generating" && (
-            <motion.span
-              className="text-xs text-muted-foreground"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              Generating lesson…
-            </motion.span>
-          )}
-        </div>
-        <motion.button
-          onClick={() => setWhyModalOpen(true)}
-          className="relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium text-amber-300 cursor-pointer overflow-hidden"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {/* Siri-style animated gradient glow */}
-          <motion.div
-            className="absolute inset-0 rounded-full opacity-60"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(251,191,36,0.25), rgba(244,114,182,0.2), rgba(129,140,248,0.2), rgba(251,191,36,0.25))",
-              backgroundSize: "300% 300%",
-            }}
-            animate={{
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          {/* Soft pulsing border glow */}
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{
-              boxShadow: "inset 0 0 0 1px rgba(251,191,36,0.3)",
-            }}
-            animate={{
-              boxShadow: [
-                "inset 0 0 0 1px rgba(251,191,36,0.3), 0 0 6px rgba(251,191,36,0.15)",
-                "inset 0 0 0 1px rgba(244,114,182,0.3), 0 0 10px rgba(244,114,182,0.2)",
-                "inset 0 0 0 1px rgba(129,140,248,0.3), 0 0 6px rgba(129,140,248,0.15)",
-                "inset 0 0 0 1px rgba(251,191,36,0.3), 0 0 6px rgba(251,191,36,0.15)",
-              ],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="relative flex items-center gap-1.5"
-            animate={{
-              color: ["#fbbf24", "#f472b6", "#818cf8", "#fbbf24"],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            <span>Lore</span>
-          </motion.div>
-        </motion.button>
-      </div>
+    <div className="flex flex-col h-[100dvh] overflow-hidden" style={{ background: "#050911" }}>
 
-      {/* Error state */}
+      {/* ── Error ───────────────────────────────────────────────────── */}
       {phase === "error" ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-3">
-          <p className="text-sm text-destructive">
-            Failed to generate lesson. Please try again.
-          </p>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Go Back
-          </Button>
+          <p className="text-sm text-destructive">Failed to generate lesson. Please try again.</p>
+          <Button variant="outline" size="sm" onClick={onClose}>Go Back</Button>
         </div>
       ) : (
-        /* Left panel + canvas */
-        <div className="flex flex-1 min-h-0">
-          {/* Left panel — tutor */}
-          <div className="w-[20%] min-w-[240px] max-w-[320px] flex flex-col border-r bg-card overflow-hidden">
-            {/* Character — top of panel */}
-            <div className="shrink-0 flex flex-col items-center gap-0.5 px-4 pt-4 pb-2">
-              <PixelCharacter
-                emotion={pixelEmotion}
-                isTalking={pixelTalking}
-                size={48}
-              />
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] text-muted-foreground font-medium">
-                  Athena
-                </span>
-                {(pixelTalking || pixelLoading) && (
-                  <div className="flex items-center gap-[2px]">
-                    {[0, 1, 2, 3].map((i) => (
-                      <motion.div
-                        key={i}
-                        className={cn(
-                          "w-[2px] rounded-full",
-                          pixelTalking ? "bg-athena-amber/50" : "bg-athena-amber/30"
-                        )}
-                        animate={
-                          pixelTalking
-                            ? { height: [3, 8 + i * 2, 3] }
-                            : { height: [3, 5, 3], opacity: [0.3, 0.6, 0.3] }
-                        }
-                        transition={{
-                          duration: pixelTalking ? 0.4 : 1.0,
-                          repeat: Infinity,
-                          delay: i * 0.1,
-                          ease: "easeInOut",
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+        <>
+          {/* ── Main area: full canvas, no header ────────────────────── */}
+          <div className="flex-1 relative min-h-0">
 
-            {/* Scrollable content area — narration/check-in/chat messages */}
-            <div
-              className="flex-1 min-h-0 overflow-y-auto scroll-smooth px-4 pb-3"
-              ref={isChatting ? chatScrollRef : contentScrollRef}
+            {/* Floating Back button — top-left */}
+            <button
+              onClick={onClose}
+              className="absolute top-3 left-3 z-30 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/60 backdrop-blur-sm transition-colors hover:bg-black/60 hover:text-white/90"
             >
-              <AnimatePresence mode="wait">
-                {isGenerating ? (
-                  <motion.div
-                    key="generating"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center justify-center h-full pt-4"
-                  >
-                    <GenerationProgress />
-                  </motion.div>
-                ) : isChatting ? (
-                  /* ── Chat messages — user bubbles + step-based tutor response ── */
-                  <motion.div
-                    key="chat-messages"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-2 pt-1"
-                  >
-                    <button
-                      onClick={closeChat}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      &larr; {lessonPhase === "practice" ? "Back to practice" : "Resume lesson"}
-                    </button>
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </button>
 
-                    {/* Show only the last user question (full history still sent to agent) */}
-                    {(() => {
-                      const lastUserMsg = chat.chatMessages.findLast((msg) => msg.role === "user");
-                      return lastUserMsg ? <MessageBubble key="user-last" role="user" content={lastUserMsg.content} /> : null;
-                    })()}
-
-                    {/* Tutor response: current step's displayText via MathContent */}
-                    {chat.chatWhiteboardSteps.length > 0 && chat.chatNarrationIndex >= 0 && (
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={`chat-step-${Math.min(chat.chatNarrationIndex, chat.chatWhiteboardSteps.length - 1)}`}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <div className="text-sm text-foreground min-h-[2.5rem] mb-2">
-                            <MathContent
-                              content={
-                                chat.chatWhiteboardSteps[
-                                  Math.min(chat.chatNarrationIndex, chat.chatWhiteboardSteps.length - 1)
-                                ]?.displayText || ""
-                              }
-                            />
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    )}
-
-                    {/* Thinking indicator while waiting for first step */}
-                    <AnimatePresence>
-                      {chat.isProcessing && chat.chatWhiteboardSteps.length === 0 && (
-                          <ThinkingIndicator variant="prominent" />
-                        )}
-                    </AnimatePresence>
-                  </motion.div>
-                ) : (lessonPhase === "practice" || lessonPhase === "complete") && !isChatting ? (
-                  /* ── Inline practice problems ── */
+            {/* Top-right cluster: progress pill + Lore button */}
+            <div className="absolute top-3 right-3 z-30 flex flex-col items-end gap-2">
+              {/* Progress pill */}
+              <AnimatePresence>
+                {lessonPhase === "lesson" && whiteboardSteps.length > 0 && (
                   <motion.div
-                    key="practice"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-3 pt-1"
-                  >
-                    {isPracticeLoading && activePracticeProblems.length === 0 ? (
-                      <div className="flex flex-col items-center gap-2 pt-4">
-                        <motion.div
-                          animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          <Sparkles className="h-6 w-6 text-athena-amber" />
-                        </motion.div>
-                        <p className="text-xs text-muted-foreground">Preparing practice…</p>
-                      </div>
-                    ) : lessonPhase === "complete" ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-3 text-center pt-4"
-                      >
-                        <CheckInConfetti />
-                        <div className="flex flex-col items-center gap-1">
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                          >
-                            <CheckCircle className="h-10 w-10 text-green-500" />
-                          </motion.div>
-                          <p className="text-sm font-semibold">
-                            {practiceCorrectCount}/{activePracticeProblems.length} correct
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {practiceCorrectCount === activePracticeProblems.length
-                              ? "Perfect! Great work on this lesson."
-                              : "Keep it up, you're making progress!"}
-                          </p>
-                        </div>
-                        <Button size="sm" className="gap-1" onClick={onClose}>
-                          Done
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </motion.div>
-                    ) : currentPracticeProblem ? (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Practice {currentProblemIndex + 1} of {activePracticeProblems.length}
-                          </span>
-                          <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full bg-athena-amber rounded-full"
-                              animate={{ width: `${(currentProblemIndex / activePracticeProblems.length) * 100}%` }}
-                              transition={{ duration: 0.3 }}
-                            />
-                          </div>
-                        </div>
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={currentPracticeProblem.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <PracticeGradientCard
-                              problem={currentPracticeProblem}
-                              questionNumber={currentProblemIndex + 1}
-                              onCorrect={() => {
-                                setPracticeCorrectCount((c) => c + 1);
-                                setCurrentProblemIndex((i) => i + 1);
-                              }}
-                              onExhausted={() => {
-                                setCurrentProblemIndex((i) => i + 1);
-                              }}
-                            />
-                          </motion.div>
-                        </AnimatePresence>
-                      </>
-                    ) : null}
-                  </motion.div>
-                ) : isCheckIn && currentCheckIn ? (
-                  /* ── Check-in ── */
-                  <motion.div
-                    key="check-in"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <CheckInCard
-                      key={`check-in-${userStepIndex}`}
-                      checkIn={currentCheckIn}
-                      onAnswer={wrappedAdvance}
-                      onNarrate={(text) => playNarration(text)}
-                      onHintPhase={setInteractionHintPhase}
-                    />
-                  </motion.div>
-                ) : currentPrediction ? (
-                  /* ── Predict ── */
-                  <motion.div
-                    key={`predict-${userStepIndex}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <PredictCard
-                      predict={currentPrediction}
-                      onAnswer={handleInteractionAnswer}
-                      onNarrate={(text) => playNarration(text)}
-                      onHintPhase={setInteractionHintPhase}
-                    />
-                  </motion.div>
-                ) : currentFillBlank ? (
-                  /* ── Fill blank ── */
-                  <motion.div
-                    key={`fill-blank-${userStepIndex}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <FillBlankCard
-                      fillBlank={currentFillBlank}
-                      onAnswer={handleInteractionAnswer}
-                      onNarrate={(text) => playNarration(text)}
-                      onHintPhase={setInteractionHintPhase}
-                    />
-                  </motion.div>
-                ) : (
-                  /* ── Teaching step or last step ── */
-                  <motion.div
-                    key={`narration-${userStepIndex}`}
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex items-center gap-2.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-sm"
                   >
-                    <div className="text-sm text-foreground min-h-[2.5rem] mb-2">
-                      <MathContent content={currentDisplayText} />
+                    <span className="tabular-nums text-xs font-medium text-white/50">
+                      {userStepIndex + 1} / {whiteboardSteps.length}
+                    </span>
+                    <div className="h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
+                      <motion.div
+                        className="h-full rounded-full bg-athena-amber"
+                        animate={{ width: `${Math.round(((userStepIndex + 1) / Math.max(whiteboardSteps.length, 1)) * 100)}%` }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                      />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Lore button */}
+              <motion.button
+                onClick={() => setWhyModalOpen(true)}
+                className="relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-amber-300 cursor-pointer overflow-hidden"
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              >
+                <motion.div className="absolute inset-0 rounded-full opacity-70" style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.2), rgba(244,114,182,0.15), rgba(129,140,248,0.15), rgba(251,191,36,0.2))", backgroundSize: "300% 300%" }} animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+                <motion.div className="absolute inset-0 rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(251,191,36,0.25)" }} animate={{ boxShadow: ["inset 0 0 0 1px rgba(251,191,36,0.25)", "inset 0 0 0 1px rgba(244,114,182,0.25)", "inset 0 0 0 1px rgba(129,140,248,0.25)", "inset 0 0 0 1px rgba(251,191,36,0.25)"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+                <motion.div className="relative flex items-center gap-1.5" animate={{ color: ["#fbbf24", "#f472b6", "#818cf8", "#fbbf24"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
+                  <BookOpen className="h-3.5 w-3.5" /><span>Lore</span>
+                </motion.div>
+              </motion.button>
             </div>
 
-            {/* Chat input — always visible at bottom of left panel */}
-            <div className="shrink-0 border-t px-4 py-3">
-              {chat.mode === "text" ? (
-                <form onSubmit={handleChatSubmit}>
-                  <textarea
-                    ref={chatTextareaRef}
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={handleChatKeyDown}
-                    placeholder={lessonPhase === "practice" ? "Ask about this problem…" : "Ask about this lesson…"}
-                    className="w-full bg-muted/50 rounded-lg text-sm outline-none placeholder:text-muted-foreground resize-none min-h-[36px] max-h-[56px] py-2 px-3"
-                    rows={1}
-                    disabled={isGenerating || chat.isProcessing}
-                  />
-                  <div className="flex items-center justify-between mt-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      onClick={chat.toggleMode}
-                      title="Switch to voice"
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
-                    <motion.div
-                      whileTap={{ scale: 0.9, rotate: -12 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                    >
-                      <Button
-                        type="submit"
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 shrink-0"
-                        disabled={!chatInput.trim() || chat.isProcessing}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="scale-75 origin-center">
-                    <VoiceOrb
-                      state={voiceOrbState}
-                      amplitude={chat.amplitude}
-                      onTap={
-                        chat.isRecording
-                          ? chat.stopRecording
-                          : chat.startRecording
-                      }
-                      disabled={chat.isProcessing && !chat.isRecording}
-                    />
-                  </div>
-                  <span className="text-xs text-muted-foreground text-center">
-                    {chat.isRecording
-                      ? "Listening… tap to stop"
-                      : chat.isProcessing
-                        ? "Processing…"
-                        : chat.isSpeaking
-                          ? "Speaking…"
-                          : "Tap to speak"}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1.5 text-xs"
-                    onClick={chat.toggleMode}
-                  >
-                    <Keyboard className="h-3.5 w-3.5" />
-                    Text
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right panel — canvas */}
-          <div className={`flex-1 min-h-0 ${interactionVisualStep && (interactionVisualStep.action.type === "coordinate_plane" || interactionVisualStep.action.type === "geometry") ? "flex items-center justify-center p-4" : ""}`}>
-           <AnimatePresence mode="wait">
-            {isGenerating ? (
-              <motion.div
-                key="skeleton"
-                className="h-full w-full"
-                exit={{ opacity: 0, scale: 1.02, filter: "blur(4px)" }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-              >
-                <WhiteboardSkeleton className="h-full" />
-              </motion.div>
-            ) : interactionVisualStep && (interactionVisualStep.action.type === "coordinate_plane" || interactionVisualStep.action.type === "geometry") ? (
-            <motion.div key={`interaction-visual-${interactionHintPhase}`} className="w-full h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <svg
-                viewBox="0 0 520 460"
-                className="max-w-full max-h-full"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                {interactionVisualStep.action.type === "coordinate_plane" ? (
-                  <WbCoordinatePlane
-                    action={interactionVisualStep.action as CoordinatePlaneAction}
-                    x={10} y={10} width={500} height={440}
-                    progress={1} isAnimating={false}
-                  />
+            {/* Canvas — fills full area */}
+            <div className="absolute inset-0" style={{ background: "#050911" }}>
+              <AnimatePresence mode="wait">
+                {isGenerating ? (
+                  <motion.div key="skeleton" className="absolute top-0 bottom-0 right-0 left-0" exit={{ opacity: 0, scale: 1.02, filter: "blur(4px)" }} transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}>
+                    <WhiteboardSkeleton className="h-full" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <GenerationProgress />
+                    </div>
+                  </motion.div>
+                ) : (lessonPhase === "practice" || lessonPhase === "complete") && !isChatting ? (
+                  <motion.div key="practice" className="absolute top-0 bottom-0 right-0 left-0 flex flex-col items-center justify-center p-6 overflow-y-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    {isPracticeLoading && activePracticeProblems.length === 0 ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <motion.div animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+                          <Brain className="h-8 w-8 text-athena-amber" />
+                        </motion.div>
+                        <p className="text-sm text-muted-foreground">Preparing practice…</p>
+                      </div>
+                    ) : lessonPhase === "complete" ? (
+                      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-5 relative">
+                        <CheckInConfetti />
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }}>
+                          <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                        </motion.div>
+                        <div>
+                          <p className="text-2xl font-bold">{practiceCorrectCount}/{activePracticeProblems.length} correct</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {practiceCorrectCount === activePracticeProblems.length ? "Perfect! Great work on this lesson." : "Keep it up, you're making progress!"}
+                          </p>
+                        </div>
+                        <Button size="sm" className="gap-1" onClick={onClose}>Done <ChevronRight className="h-3.5 w-3.5" /></Button>
+                      </motion.div>
+                    ) : currentPracticeProblem ? (
+                      <div className="w-full max-w-2xl space-y-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Practice {currentProblemIndex + 1} of {activePracticeProblems.length}</span>
+                          <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                            <motion.div className="h-full bg-athena-amber rounded-full" animate={{ width: `${(currentProblemIndex / activePracticeProblems.length) * 100}%` }} transition={{ duration: 0.3 }} />
+                          </div>
+                        </div>
+                        <AnimatePresence mode="wait">
+                          <motion.div key={currentPracticeProblem.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+                            <PracticeGradientCard problem={currentPracticeProblem} questionNumber={currentProblemIndex + 1} onCorrect={() => { setPracticeCorrectCount((c) => c + 1); setCurrentProblemIndex((i) => i + 1); }} onExhausted={() => setCurrentProblemIndex((i) => i + 1)} />
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+                    ) : null}
+                  </motion.div>
                 ) : (
-                  <WbGeometry
-                    action={interactionVisualStep.action as GeometryAction}
-                    x={10} y={10} width={500} height={440}
-                    progress={1} isAnimating={false}
-                  />
+                  <motion.div key={isChatting && hasChatSteps ? "chat-canvas" : "lesson-canvas"} className="absolute top-0 bottom-0 right-0 left-0" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}>
+                    <WhiteboardCanvas
+                      steps={isChatting && hasChatSteps ? chat.chatWhiteboardSteps : whiteboardSteps}
+                      visibleStepIds={isPracticeCanvas ? emptyVisibleIds : isChatting && hasChatSteps ? chatVisibleIds : visibleStepIds}
+                      currentStepIndex={isChatting && hasChatSteps ? Math.min(Math.max(chat.chatNarrationIndex, 0), chat.chatWhiteboardSteps.length - 1) : currentStepIndex}
+                      stepProgress={isChatting && hasChatSteps ? 1 : stepProgress}
+                      equalScaleCoords
+                      onPenTip={(pt) => { penClientRef.current = pt; }}
+                      onStepFocus={(focus) => { stepFocusRef.current = focus; }}
+                    />
+                    {/* Roaming AI orb — overlays the canvas, tracks the pen tip while drawing */}
+                    {!isChatting && lessonPhase === "lesson" && (
+                      <PresenceLayer
+                        orbState={orbState}
+                        amplitude={isNarrating ? 0.5 : 0}
+                        size={120}
+                        captionText={orbCaption}
+                        mode={orbMode}
+                        restAnchor={{ x: 80, y: 100 }}
+                        penClientRef={penClientRef}
+                        stepFocusRef={stepFocusRef}
+                        suppressCaption={orbMode === "draw"}
+                      />
+                    )}
+                    {/* Interaction card overlaid on the canvas — canvas stays visible behind */}
+                    <AnimatePresence>
+                      {isInteraction && lessonPhase === "lesson" && !isChatting && (
+                        <motion.div
+                          key={`interaction-${userStepIndex}`}
+                          className="absolute inset-0 flex flex-col justify-end items-center px-8 pb-8"
+                          style={{ background: "linear-gradient(to top, rgba(5,9,17,0.92) 0%, rgba(5,9,17,0.4) 55%, transparent 100%)" }}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.22 }}
+                        >
+                          <div className="w-full max-w-6xl bg-card/90 backdrop-blur-md rounded-2xl p-5 border border-border/50 shadow-xl">
+                            {isCheckIn && currentCheckIn && (
+                              <CheckInCard key={`check-in-${userStepIndex}`} checkIn={currentCheckIn} onAnswer={wrappedAdvance} onNarrate={playNarration} onHintPhase={setInteractionHintPhase} />
+                            )}
+                            {currentPrediction && (
+                              <PredictCard predict={currentPrediction} onAnswer={handleInteractionAnswer} onNarrate={playNarration} onHintPhase={setInteractionHintPhase} />
+                            )}
+                            {currentFillBlank && (
+                              <FillBlankCard fillBlank={currentFillBlank} onAnswer={handleInteractionAnswer} onNarrate={playNarration} onHintPhase={setInteractionHintPhase} />
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 )}
-              </svg>
-            </motion.div>
-           ) : (
-            <motion.div
-              key={interactionVisualStep ? `canvas-${interactionHintPhase}` : "canvas"}
-              className={`h-full w-full ${isChatting && hasChatSteps ? "min-h-[400px]" : ""}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            >
-            <WhiteboardCanvas
-              steps={
-                interactionVisualStep ? [interactionVisualStep]
-                : isChatting && hasChatSteps ? chat.chatWhiteboardSteps
-                : whiteboardSteps
-              }
-              visibleStepIds={
-                isPracticeCanvas ? emptyVisibleIds
-                : interactionVisualIds ? interactionVisualIds
-                : isChatting && hasChatSteps ? chatVisibleIds
-                : visibleStepIds
-              }
-              currentStepIndex={
-                interactionVisualStep ? 0
-                : isChatting && hasChatSteps
-                  ? Math.min(Math.max(chat.chatNarrationIndex, 0), chat.chatWhiteboardSteps.length - 1)
-                  : currentStepIndex
-              }
-              stepProgress={
-                interactionVisualStep ? 1
-                : isChatting && hasChatSteps ? 1
-                : stepProgress
-              }
-              equalScaleCoords
-            />
-            </motion.div>
-           )}
-           </AnimatePresence>
+              </AnimatePresence>
+
+              {/* Chat overlay — floats over canvas */}
+              <AnimatePresence>
+                {isChatting && (
+                  <motion.div key="chat-overlay" ref={chatScrollRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} className="absolute bottom-3 left-3 right-3 z-20 bg-card/96 backdrop-blur-md border border-border/50 rounded-2xl p-4 shadow-xl max-h-[48%] overflow-y-auto">
+                    <button onClick={closeChat} className="text-xs text-muted-foreground hover:text-foreground transition-colors mb-3 flex items-center gap-1">
+                      <ChevronLeft className="h-3 w-3" />
+                      {lessonPhase === "practice" ? "Back to practice" : "Resume lesson"}
+                    </button>
+                    {(() => {
+                      const lastUserMsg = chat.chatMessages.findLast((msg) => msg.role === "user");
+                      return lastUserMsg ? <MessageBubble key="user-last" role="user" content={lastUserMsg.content} /> : null;
+                    })()}
+                    {chat.chatWhiteboardSteps.length > 0 && chat.chatNarrationIndex >= 0 && (
+                      <AnimatePresence mode="wait">
+                        <motion.div key={`cs-${Math.min(chat.chatNarrationIndex, chat.chatWhiteboardSteps.length - 1)}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-2 text-sm text-foreground leading-relaxed">
+                          <MathContent content={chat.chatWhiteboardSteps[Math.min(chat.chatNarrationIndex, chat.chatWhiteboardSteps.length - 1)]?.displayText || ""} />
+                        </motion.div>
+                      </AnimatePresence>
+                    )}
+                    <AnimatePresence>
+                      {chat.isProcessing && chat.chatWhiteboardSteps.length === 0 && <ThinkingIndicator variant="prominent" />}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
+
+          {/* ── Bottom bar: centered pill ────────────────────────────── */}
+          <div className="shrink-0 flex justify-center px-4 py-3">
+            <div className="flex items-center gap-2 bg-card/95 backdrop-blur-sm border border-border/60 rounded-2xl px-4 py-2.5 shadow-lg w-full max-w-4xl">
+              {/* Playback controls */}
+              <CircleBtn
+                icon={<SkipBack className="h-[18px] w-[18px]" />}
+                onClick={goBack}
+                title="Previous step"
+              />
+              <CircleBtn
+                icon={isPaused ? <Play className="h-[18px] w-[18px]" /> : <Pause className="h-[18px] w-[18px]" />}
+                active={!isPaused}
+                onClick={togglePause}
+                title={isPaused ? "Resume lesson" : "Pause lesson"}
+              />
+              <CircleBtn
+                icon={<SkipForward className="h-[18px] w-[18px]" />}
+                onClick={wrappedAdvance}
+                title="Skip to next step"
+                disabled={isLastStep || !!isInteraction}
+              />
+
+              <div className="w-px h-6 bg-border/50 mx-1 shrink-0" />
+
+              {/* Chat input */}
+              <div className="flex-1 min-w-0">
+                {chat.isRecording ? (
+                  /* Recording state — pulsing indicator */
+                  <div className="flex items-center gap-2 bg-muted/60 rounded-xl px-3.5 py-2.5 min-h-[38px]">
+                    <motion.div
+                      className="w-2 h-2 shrink-0 rounded-full bg-red-500"
+                      animate={{ opacity: [1, 0.2, 1], scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                    />
+                    <span className="text-sm text-muted-foreground flex-1">Listening…</span>
+                    <button
+                      type="button"
+                      onClick={chat.stopRecording}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                ) : chat.isProcessing ? (
+                  /* Transcribing / processing state */
+                  <div className="flex items-center gap-2 bg-muted/60 rounded-xl px-3.5 py-2.5 min-h-[38px]">
+                    <motion.div
+                      className="flex gap-[3px] items-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                    >
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          className="w-1 rounded-full bg-athena-amber/70"
+                          animate={{ height: [3, 12, 3] }}
+                          transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                        />
+                      ))}
+                    </motion.div>
+                    <span className="text-sm text-muted-foreground">Processing…</span>
+                  </div>
+                ) : (
+                  /* Normal text input */
+                  <form onSubmit={handleChatSubmit} className="flex items-center gap-2">
+                    <textarea
+                      ref={chatTextareaRef}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={handleChatKeyDown}
+                      placeholder={lessonPhase === "practice" ? "Ask about this problem…" : "Type or speak…"}
+                      className="flex-1 bg-muted/60 rounded-xl text-sm outline-none placeholder:text-muted-foreground resize-none min-h-[38px] max-h-[56px] py-2.5 px-3.5 border border-transparent focus:border-athena-amber/40 transition-colors overflow-hidden"
+                      rows={1}
+                      disabled={isGenerating}
+                    />
+                    <CircleBtn
+                      icon={isMuted ? <VolumeX className="h-[18px] w-[18px]" /> : <Volume2 className="h-[18px] w-[18px]" />}
+                      active={!isMuted}
+                      onClick={toggleMute}
+                      title={isMuted ? "Unmute narration" : "Mute narration"}
+                    />
+                    <CircleBtn
+                      icon={<Mic className="h-[18px] w-[18px]" />}
+                      active={chat.isRecording}
+                      onClick={chat.startRecording}
+                      title="Start voice input"
+                      disabled={isGenerating}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!chatInput.trim()}
+                      title="Send"
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-all",
+                        chatInput.trim()
+                          ? "border-athena-amber bg-athena-amber/20 text-athena-amber"
+                          : "border-border/60 bg-background text-muted-foreground opacity-40 cursor-not-allowed",
+                      )}
+                    >
+                      <Send className="h-[18px] w-[18px]" />
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
+
       <WhyThisMattersModal
         open={whyModalOpen}
         onOpenChange={setWhyModalOpen}

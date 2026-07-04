@@ -88,20 +88,6 @@ export async function POST(
   const body = await req.json();
 
   if (body.action === "start") {
-    const { data: inserted } = await supabase
-      .from("subtopic_lore")
-      .insert({
-        subtopic_id: subtopicId,
-        status: "generating",
-        whiteboard_steps: [],
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (inserted) {
-      return NextResponse.json({ acquired: true });
-    }
-
     const { data: existing } = await supabase
       .from("subtopic_lore")
       .select("*")
@@ -109,25 +95,35 @@ export async function POST(
       .limit(1)
       .maybeSingle();
 
-    if (!existing) {
+    // Already ready with actual content — don't regenerate
+    if (
+      existing?.status === "ready" &&
+      Array.isArray(existing.whiteboard_steps) &&
+      existing.whiteboard_steps.length > 0
+    ) {
       return NextResponse.json({ acquired: false });
     }
 
-    if (existing.status === "generating") {
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-      if (new Date(existing.updated_at) < tenMinutesAgo) {
-        await supabase
-          .from("subtopic_lore")
-          .update({
-            status: "generating",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("subtopic_id", subtopicId);
-        return NextResponse.json({ acquired: true });
-      }
+    // Stuck in generating (empty steps or stale) — reset and acquire
+    if (existing) {
+      await supabase
+        .from("subtopic_lore")
+        .update({
+          status: "generating",
+          whiteboard_steps: [],
+          updated_at: new Date().toISOString(),
+        })
+        .eq("subtopic_id", subtopicId);
+      return NextResponse.json({ acquired: true });
     }
 
-    return NextResponse.json({ acquired: false });
+    // No row yet — insert fresh
+    await supabase.from("subtopic_lore").insert({
+      subtopic_id: subtopicId,
+      status: "generating",
+      whiteboard_steps: [],
+    });
+    return NextResponse.json({ acquired: true });
   }
 
   if (body.action === "save") {

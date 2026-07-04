@@ -6,30 +6,16 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { WelcomeHeader } from "@/components/dashboard/welcome-header";
-import { RankCard } from "@/components/dashboard/rank-card";
-import { DailyStudyReminder } from "@/components/dashboard/daily-study-reminder";
+import { getGreeting } from "@/lib/utils";
 import { DailyQuestCard } from "@/components/dashboard/daily-quest-card";
 import { QuestStreak } from "@/components/dashboard/quest-streak";
-import { BattleZones } from "@/components/dashboard/battle-zones";
 import { CompanionCard } from "@/components/dashboard/companion-card";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { FriendsLeaderboard } from "@/components/dashboard/friends-leaderboard";
-import { FullSatCard } from "@/components/dashboard/full-sat-card";
-import { ParticlesBackground } from "@/components/particles-background";
+import { FullGmatCard } from "@/components/dashboard/full-gmat-card";
+import { RankCard } from "@/components/dashboard/rank-card";
 
-type StreakDay = {
-  day: string;
-  completed: boolean;
-  isPast: boolean;
-};
-
-type BattleZone = {
-  name: string;
-  slug: string;
-  done: number;
-};
-
+type StreakDay = { day: string; completed: boolean; isPast: boolean };
 type FriendScore = {
   id: string;
   displayName: string | null;
@@ -37,7 +23,6 @@ type FriendScore = {
   totalScore: number;
   weeklyDelta: number;
 };
-
 type DashboardData = {
   user: {
     displayName: string | null;
@@ -56,38 +41,28 @@ type DashboardData = {
   weeklyDelta: number;
   topics: { slug: string; name: string; subtopicCount: number }[];
   weeklyStreakDays: StreakDay[];
-  battleZones: BattleZone[];
+  battleZones: { name: string; slug: string; done: number }[];
   todayStudyTime: string | null;
   targetScore: number | null;
   friendsScores: FriendScore[];
 };
 
-const staggerContainer = {
-  hidden: {},
-  show: {
-    transition: {
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+const fade = {
+  hidden: { opacity: 0, y: 10 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.28, delay: i * 0.06 },
+  }),
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const { data: userData, loading: userLoading } = useCurrentUser();
 
-  const readyToLoad =
-    !userLoading && !!userData && userData.user.onboardingCompleted;
+  const readyToLoad = !userLoading && !!userData && userData.user.onboardingCompleted;
 
-  const {
-    data,
-    isLoading: dashLoading,
-    isError,
-  } = useQuery<DashboardData>({
+  const { data, isLoading: dashLoading, isError } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
     queryFn: () =>
       fetch("/api/dashboard").then((r) => {
@@ -112,18 +87,17 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl p-6">
-        <div className="h-8 w-64 bg-muted rounded animate-pulse" />
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-6 lg:col-span-3">
-            <div className="h-40 bg-muted animate-pulse" />
-            <div className="h-56 bg-muted animate-pulse" />
-            <div className="h-24 bg-muted animate-pulse" />
+      <div className="mx-auto max-w-7xl p-6 space-y-5">
+        <div className="h-7 w-44 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+          <div className="space-y-4 lg:col-span-3">
+            <div className="h-40 animate-pulse rounded-xl bg-muted" />
+            <div className="h-24 animate-pulse rounded-xl bg-muted" />
+            <div className="h-24 animate-pulse rounded-xl bg-muted" />
           </div>
-          <div className="space-y-6 lg:col-span-2">
-            <div className="h-24 bg-muted animate-pulse" />
-            <div className="h-32 bg-muted animate-pulse" />
-            <div className="h-48 bg-muted animate-pulse" />
+          <div className="space-y-4 lg:col-span-2">
+            <div className="h-48 animate-pulse rounded-xl bg-muted" />
+            <div className="h-24 animate-pulse rounded-xl bg-muted" />
           </div>
         </div>
       </div>
@@ -132,88 +106,76 @@ export default function DashboardPage() {
 
   if (!data) return null;
 
+  const name = data.user.displayName?.split(" ")[0] || "there";
+
   return (
-    <div className="relative">
-      <ParticlesBackground />
-      <div className="relative z-10 p-6">
-        <motion.div
-          className="mx-auto max-w-6xl"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="show"
-        >
-          {/* Welcome Header */}
-          <motion.div variants={staggerItem}>
-            <WelcomeHeader
-              displayName={data.user.displayName}
-              avatarUrl={data.user.avatarUrl}
+    <div className="mx-auto max-w-7xl p-6">
+      {/* ── Compact header ── */}
+      <motion.div custom={0} variants={fade} initial="hidden" animate="show" className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            {getGreeting()}
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
+        </div>
+        {data.todayStudyTime && (
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Study time: {data.todayStudyTime}
+          </div>
+        )}
+      </motion.div>
+
+      {/* ── Two-column layout ── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+
+        {/* ── Left: action feed ── */}
+        <div className="space-y-4 lg:col-span-3">
+
+          {/* 1. TODAY'S QUEST — hero of the page */}
+          <motion.div custom={1} variants={fade} initial="hidden" animate="show">
+            <DailyQuestCard />
+          </motion.div>
+
+          {/* 2. Full GMAT practice test */}
+          <motion.div custom={2} variants={fade} initial="hidden" animate="show">
+            <FullGmatCard />
+          </motion.div>
+
+          {/* 3. Weekly streak */}
+          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
+            <QuestStreak streak={data.streak} days={data.weeklyStreakDays} />
+          </motion.div>
+        </div>
+
+        {/* ── Right: stats sidebar ── */}
+        <div className="space-y-4 lg:col-span-2">
+
+          {/* 1. Score & tier — informational, not the hero */}
+          <motion.div custom={1} variants={fade} initial="hidden" animate="show">
+            <RankCard totalScore={data.totalScore} weeklyDelta={data.weeklyDelta} />
+          </motion.div>
+
+          {/* 2. Target score + sessions */}
+          <motion.div custom={2} variants={fade} initial="hidden" animate="show">
+            <StatsCards
+              targetScore={data.user.targetScore ?? data.targetScore}
+              sessionsCount={data.completedSessions}
             />
           </motion.div>
 
-          {/* Two-column layout */}
-          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Left column (main) */}
-            <motion.div
-              className="space-y-5 lg:col-span-3"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
-            >
-              <motion.div variants={staggerItem}>
-                <RankCard
-                  totalScore={data.totalScore}
-                  weeklyDelta={data.weeklyDelta}
-                />
-              </motion.div>
+          {/* 3. AI companion */}
+          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
+            <CompanionCard />
+          </motion.div>
 
-              <motion.div variants={staggerItem}>
-                <DailyStudyReminder time={data.todayStudyTime} />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <DailyQuestCard />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <FullSatCard />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <QuestStreak
-                  streak={data.streak}
-                  days={data.weeklyStreakDays}
-                />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <BattleZones zones={data.battleZones} />
-              </motion.div>
-            </motion.div>
-
-            {/* Right column (sidebar) */}
-            <motion.div
-              className="space-y-5 lg:col-span-2"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
-            >
-              <motion.div variants={staggerItem}>
-                <CompanionCard />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <StatsCards
-                  targetScore={data.user.targetScore ?? data.targetScore}
-                  sessionsCount={data.completedSessions}
-                />
-              </motion.div>
-
-              <motion.div variants={staggerItem}>
-                <FriendsLeaderboard friends={data.friendsScores} />
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
+          {/* 4. Friends leaderboard */}
+          <motion.div custom={4} variants={fade} initial="hidden" animate="show">
+            <FriendsLeaderboard friends={data.friendsScores} />
+          </motion.div>
+        </div>
       </div>
     </div>
   );

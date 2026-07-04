@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
 const steps = [
-  { id: "quiz", label: "Level Quiz" },
+  { id: "quiz", label: "Diagnostic" },
   { id: "schedule", label: "Schedule" },
-  { id: "completed", label: "Ready!" },
+  { id: "completed", label: "Complete" },
 ] as const;
 
 type Step = (typeof steps)[number]["id"];

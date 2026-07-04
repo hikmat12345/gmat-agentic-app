@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 type WbHighlightProps = {
   x: number;
   y: number;
@@ -13,7 +11,7 @@ type WbHighlightProps = {
 
 export function WbHighlight({ x, y, width, height, color, progress }: WbHighlightProps) {
   return (
-    <motion.rect
+    <rect
       x={x}
       y={y}
       width={width}
@@ -21,9 +19,10 @@ export function WbHighlight({ x, y, width, height, color, progress }: WbHighligh
       fill={color}
       fillOpacity={0.18}
       rx="8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: progress > 0 ? 1 : 0 }}
-      transition={{ duration: 0.3 }}
+      style={{
+        opacity: progress > 0 ? 1 : 0,
+        transition: "opacity 0.3s",
+      }}
     />
   );
 }

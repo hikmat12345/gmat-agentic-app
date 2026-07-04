@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { NumberLineAction } from "@/types/whiteboard";
 import { adaptWbColor, useIsDarkMode } from "../wb-color";
 
@@ -47,11 +46,7 @@ export function WbNumberLine({
   }
 
   return (
-    <motion.g
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <g>
       {/* Shaded intervals (behind everything) */}
       {action.intervals?.map((interval, i) => {
         const fromX = valToX(interval.from);
@@ -127,16 +122,17 @@ export function WbNumberLine({
         const color = adaptWbColor(pt.style?.color ?? "#2563eb", isDark);
         return (
           <g key={`pt-${i}`}>
-            <motion.circle
+            <circle
               cx={px}
               cy={lineY}
               r={r}
               fill={filled ? color : "var(--wb-canvas)"}
               stroke={color}
               strokeWidth="2"
-              initial={{ scale: 0 }}
-              animate={{ scale: progress > 0 ? 1 : 0 }}
-              transition={{ duration: 0.2, delay: isAnimating ? i * 0.1 : 0 }}
+              style={{
+                opacity: progress > 0 ? 1 : 0,
+                transition: `opacity 0.2s ${isAnimating ? i * 0.1 : 0}s`,
+              }}
             />
             {pt.label && (
               <text
@@ -183,6 +179,6 @@ export function WbNumberLine({
           </g>
         );
       })}
-    </motion.g>
+    </g>
   );
 }

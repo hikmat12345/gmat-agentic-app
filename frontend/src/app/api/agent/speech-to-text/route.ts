@@ -10,8 +10,8 @@ export async function POST(req: Request) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "ElevenLabs not configured" },
-      { status: 500 }
+      { error: "Speech-to-text is not configured" },
+      { status: 503 }
     );
   }
 

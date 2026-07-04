@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
 import type { TextStyle } from "@/types/whiteboard";
 import { adaptWbColor, useIsDarkMode } from "../wb-color";
 
@@ -80,20 +79,18 @@ export function WbText({ text, x, y, width, height, style, reveal, progress, isA
 
   if (reveal === "line" || !reveal || !isAnimating) {
     return (
-      <motion.text
+      <text
         x={x}
         y={firstLineY}
         {...common}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: progress > 0 ? 1 : 0 }}
-        transition={{ duration: 0.3 }}
+        style={{ fill: color, opacity: progress > 0 ? 1 : 0, transition: "opacity 0.3s" }}
       >
         {lines.map((line, i) => (
           <tspan key={i} x={x} dy={i === 0 ? 0 : lineHeight}>
             {line}
           </tspan>
         ))}
-      </motion.text>
+      </text>
     );
   }
 
@@ -112,15 +109,13 @@ export function WbText({ text, x, y, width, height, style, reveal, progress, isA
         {lineWords.map((words, li) => (
           <tspan key={li} x={x} dy={li === 0 ? 0 : lineHeight}>
             {words.map((w, wi) => (
-              <motion.tspan
+              <tspan
                 key={w.idx}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: w.idx < visibleCount ? 1 : 0 }}
-                transition={{ duration: 0.15 }}
+                style={{ opacity: w.idx < visibleCount ? 1 : 0, transition: "opacity 0.15s" }}
               >
                 {wi > 0 ? " " : ""}
                 {w.word}
-              </motion.tspan>
+              </tspan>
             ))}
           </tspan>
         ))}
@@ -142,14 +137,12 @@ export function WbText({ text, x, y, width, height, style, reveal, progress, isA
       {lineChars.map((chars, li) => (
         <tspan key={li} x={x} dy={li === 0 ? 0 : lineHeight}>
           {chars.map((c) => (
-            <motion.tspan
+            <tspan
               key={c.idx}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: c.idx < visibleCount ? 1 : 0 }}
-              transition={{ duration: 0.08 }}
+              style={{ opacity: c.idx < visibleCount ? 1 : 0, transition: "opacity 0.08s" }}
             >
               {c.char}
-            </motion.tspan>
+            </tspan>
           ))}
         </tspan>
       ))}

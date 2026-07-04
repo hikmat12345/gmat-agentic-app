@@ -11,8 +11,13 @@ Usage:
 
 import argparse
 import asyncio
+import io
 import sys
 import time
+
+# Ensure stdout handles Unicode on Windows
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
 
@@ -182,6 +187,87 @@ async def cmd_generate_content(args):
     print(f"   Stats: {stats}")
 
 
+async def cmd_generate_gmat_content(args):
+    from app.pre_generation.gmat_content_workflow import GmatContentWorkflow
+
+    print("+" + "=" * 44 + "+")
+    print("|  Athena — GMAT Content Generation           |")
+    print("+" + "=" * 44 + "+")
+    print(f"  Section: {args.section}")
+
+    start = time.time()
+    try:
+        workflow = GmatContentWorkflow()
+        stats = await workflow.run_generation(section=args.section)
+    except Exception as e:
+        print(f"\n  Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+    elapsed = time.time() - start
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+    print(f"\n  Complete in {minutes}m {seconds}s")
+    print(f"  Stats: {stats}")
+
+
+async def cmd_seed_full_gmat_bank(args):
+    from app.pre_generation.full_gmat_seeder import seed_full_gmat_bank
+
+    count = max(20, min(100, args.count))
+
+    print("+" + "=" * 44 + "+")
+    print("|  Athena — Full GMAT Problem Bank Seeder     |")
+    print("+" + "=" * 44 + "+")
+    print(f"  Section(s):     {args.section}")
+    print(f"  Count/subtopic: {count}")
+    print(f"  Force re-seed:  {args.force}")
+
+    overall_start = time.time()
+    try:
+        stats = await seed_full_gmat_bank(
+            section=args.section,
+            count=count,
+            force=args.force,
+        )
+    except Exception as e:
+        print(f"\n  Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+    elapsed = time.time() - overall_start
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+    print(f"\n  Done in {minutes}m {seconds}s")
+    print(f"  Seeded: {stats['seeded']} | Skipped: {stats['skipped']} | Failed: {stats['failed']}")
+
+    if stats["failed"] > 0:
+        sys.exit(1)
+
+
+async def cmd_assemble_full_gmat_test(args):
+    from app.pre_generation.full_gmat_test_assembler import assemble_full_gmat_test
+
+    print("+" + "=" * 44 + "+")
+    print("|  Athena — Full GMAT Test Assembler          |")
+    print("+" + "=" * 44 + "+")
+
+    start = time.time()
+    try:
+        test = assemble_full_gmat_test(test_number=args.test_number)
+    except Exception as e:
+        print(f"\n  Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+    elapsed = time.time() - start
+    print(f"\n  Assembled test #{test['test_number']} ({test['name']}) in {elapsed:.1f}s")
+    print(f"  Test ID: {test['id']}")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="athena-cli", description="Athena admin utilities")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -218,6 +304,30 @@ def main():
     p_assemble = subparsers.add_parser("assemble-full-sat-test", help="Assemble a full SAT test from the bank")
     p_assemble.add_argument("--test-number", type=int, default=None, help="Test number (auto-increments if omitted)")
 
+    # generate-gmat-content
+    p_gmat_content = subparsers.add_parser("generate-gmat-content", help="Run the GMAT content generation workflow")
+    p_gmat_content.add_argument(
+        "--section",
+        default="all",
+        choices=["verbal", "quantitative", "data_insights", "all"],
+        help="GMAT section to generate (default: all)",
+    )
+
+    # seed-full-gmat-bank
+    p_gmat_bank = subparsers.add_parser("seed-full-gmat-bank", help="Seed the full GMAT problem bank")
+    p_gmat_bank.add_argument(
+        "--section",
+        default="all",
+        choices=["verbal", "quantitative", "data_insights", "all"],
+        help="GMAT section to seed (default: all)",
+    )
+    p_gmat_bank.add_argument("--count", type=int, default=50, help="Problems per subtopic (default: 50)")
+    p_gmat_bank.add_argument("--force", action="store_true", help="Re-seed even if problems exist")
+
+    # assemble-full-gmat-test
+    p_gmat_assemble = subparsers.add_parser("assemble-full-gmat-test", help="Assemble a 64-question GMAT Focus Edition test from the bank")
+    p_gmat_assemble.add_argument("--test-number", type=int, default=None, help="Test number (auto-increments if omitted)")
+
     args = parser.parse_args()
 
     dispatch = {
@@ -227,6 +337,9 @@ def main():
         "generate-content": cmd_generate_content,
         "seed-full-sat-bank": cmd_seed_full_sat_bank,
         "assemble-full-sat-test": cmd_assemble_full_sat_test,
+        "generate-gmat-content": cmd_generate_gmat_content,
+        "seed-full-gmat-bank": cmd_seed_full_gmat_bank,
+        "assemble-full-gmat-test": cmd_assemble_full_gmat_test,
     }
 
     asyncio.run(dispatch[args.command](args))

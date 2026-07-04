@@ -3,11 +3,23 @@ import { getUserByClerkId, updateUser } from "@/lib/db/queries/users";
 import {
   createSchedules,
   deleteUserSchedules,
+  getUserSchedules,
 } from "@/lib/db/queries/schedules";
 import { createSessions } from "@/lib/db/queries/sessions";
 import { upsertOnboardingProgress } from "@/lib/db/queries/onboarding";
 import { generateSessionDates } from "@/lib/schedule-utils";
 import { NextResponse } from "next/server";
+
+export async function GET() {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await getUserByClerkId(clerkId);
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const schedules = await getUserSchedules(user.id);
+  return NextResponse.json({ schedules });
+}
 
 export async function POST(req: Request) {
   const { userId: clerkId } = await auth();

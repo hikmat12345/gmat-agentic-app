@@ -13,7 +13,7 @@ SUBJECT_LABELS = {
 
 topic_agent = Agent(
     name="SAT Topic Generator",
-    model=Claude(id="claude-sonnet-4-20250514"),
+    model=Claude(id="claude-sonnet-4-6"),
     description="You generate comprehensive SAT topic metadata.",
     instructions=[
         "You are an expert SAT curriculum designer.",

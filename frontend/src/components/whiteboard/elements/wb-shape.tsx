@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { ShapeStyle } from "@/types/whiteboard";
 
 type WbShapeProps = {
@@ -35,7 +34,7 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
     const circumference = 2 * Math.PI * Math.max(rx, ry);
 
     return (
-      <motion.ellipse
+      <ellipse
         cx={c.x}
         cy={c.y}
         rx={rx}
@@ -46,9 +45,6 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
         strokeDasharray={isAnimating ? circumference : undefined}
         strokeDashoffset={isAnimating ? circumference * (1 - progress) : 0}
         strokeLinecap="round"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
       />
     );
   }
@@ -63,7 +59,7 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
     const perimeter = 2 * (w + h);
 
     return (
-      <motion.rect
+      <rect
         x={rx}
         y={ry2}
         width={w}
@@ -74,9 +70,6 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
         strokeDasharray={isAnimating ? perimeter : dashed}
         strokeDashoffset={isAnimating ? perimeter * (1 - progress) : 0}
         strokeLinecap="round"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
       />
     );
   }
@@ -105,7 +98,7 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
             </marker>
           </defs>
         )}
-        <motion.line
+        <line
           x1={p1.x}
           y1={p1.y}
           x2={p2.x}
@@ -116,9 +109,6 @@ export function WbShape({ shape, points, x, y, width, height, style, progress, i
           strokeDashoffset={isAnimating ? length * (1 - progress) : 0}
           strokeLinecap="round"
           markerEnd={markerId ? `url(#${markerId})` : undefined}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
         />
       </g>
     );

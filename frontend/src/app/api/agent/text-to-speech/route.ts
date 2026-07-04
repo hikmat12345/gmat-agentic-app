@@ -8,13 +8,15 @@ export async function POST(req: Request) {
   }
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  if (!apiKey || !voiceId) {
+  if (!apiKey) {
     return NextResponse.json(
-      { error: "ElevenLabs not configured" },
-      { status: 500 }
+      { error: "Text-to-speech is not configured" },
+      { status: 503 }
     );
   }
+
+  // George — warm, gravelly British male. Override via ELEVENLABS_VOICE_ID env var.
+  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
 
   try {
     const { text } = (await req.json()) as { text: string };
@@ -35,7 +37,13 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_turbo_v2",
+          model_id: "eleven_turbo_v2_5",
+          voice_settings: {
+            stability: 0.45,
+            similarity_boost: 0.80,
+            style: 0.30,
+            use_speaker_boost: true,
+          },
         }),
       }
     );

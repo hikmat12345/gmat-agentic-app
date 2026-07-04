@@ -1,6 +1,18 @@
 import { supabase } from "@/lib/supabase/client";
 import type { SubsectionSkill, SectionCategory } from "@/types/adaptive";
 
+/** Map a topic subject string to the adaptive SectionCategory. */
+export function subjectToSectionCategory(subject: string): SectionCategory {
+  switch (subject) {
+    case "math":            return "Math";
+    case "reading_writing": return "ReadingWriting";
+    case "verbal":          return "Verbal";
+    case "quantitative":    return "Quantitative";
+    case "data_insights":   return "DataInsights";
+    default:                return "Quantitative"; // safe default for GMAT
+  }
+}
+
 function mapSkill(row: Record<string, unknown>): SubsectionSkill {
   return {
     id: row.id as string,
@@ -124,8 +136,7 @@ export async function initializeAllSkills(userId: string): Promise<SubsectionSki
     .map((s) => {
       const topic = s.topics as unknown as { subject: string };
       const subject = topic?.subject ?? "math";
-      const sectionCategory =
-        subject === "math" ? "Math" : "ReadingWriting";
+      const sectionCategory = subjectToSectionCategory(subject);
       return {
         user_id: userId,
         subtopic_id: s.id,

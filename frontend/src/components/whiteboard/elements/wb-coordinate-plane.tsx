@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { CoordinatePlaneAction } from "@/types/whiteboard";
 import { adaptWbColor, useIsDarkMode } from "../wb-color";
 
@@ -241,11 +240,7 @@ export function WbCoordinatePlane({
   const [, axisBottom] = dataToSvg(0, yMin, xMin, xMax, yMin, yMax, bx, by, bw, bh);
 
   return (
-    <motion.g
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <g>
       {/* Grid lines */}
       {showGrid && (
         <g>
@@ -391,20 +386,18 @@ export function WbCoordinatePlane({
               bw,
               bh,
             );
-            const pathRef = `coord-fn-${i}`;
             return (
               <g key={`fn-${i}`}>
-                <motion.path
+                <path
                   d={pathD}
                   fill="none"
                   stroke={adaptWbColor(elem.style?.strokeColor ?? "#2563eb", isDark)}
                   strokeWidth={elem.style?.strokeWidth ?? 2}
-                  strokeDasharray={elem.style?.dashed ? "6 4" : undefined}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  initial={isAnimating ? { pathLength: 0 } : undefined}
-                  animate={{ pathLength: progress }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  pathLength={isAnimating ? 1 : undefined}
+                  strokeDasharray={isAnimating ? 1 : (elem.style?.dashed ? "6 4" : undefined)}
+                  strokeDashoffset={isAnimating ? 1 - progress : undefined}
                 />
                 {elem.label && (
                   <text
@@ -427,16 +420,17 @@ export function WbCoordinatePlane({
             const r = elem.style?.radius ?? 4;
             return (
               <g key={`pt-${i}`}>
-                <motion.circle
+                <circle
                   cx={px}
                   cy={py}
                   r={r}
                   fill={filled ? adaptWbColor(elem.style?.color ?? "#2563eb", isDark) : "var(--wb-canvas)"}
                   stroke={adaptWbColor(elem.style?.color ?? "#2563eb", isDark)}
                   strokeWidth="2"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: progress > 0 ? 1 : 0 }}
-                  transition={{ duration: 0.2 }}
+                  style={{
+                    opacity: progress > 0 ? 1 : 0,
+                    transition: "opacity 0.2s",
+                  }}
                 />
                 {elem.label && (
                   <text
@@ -459,7 +453,7 @@ export function WbCoordinatePlane({
             const len = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
             return (
               <g key={`ln-${i}`}>
-                <motion.line
+                <line
                   x1={x1}
                   y1={y1}
                   x2={x2}
@@ -547,6 +541,6 @@ export function WbCoordinatePlane({
             return null;
         }
       })}
-    </motion.g>
+    </g>
   );
 }

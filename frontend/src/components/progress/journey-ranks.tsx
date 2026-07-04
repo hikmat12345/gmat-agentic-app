@@ -9,8 +9,8 @@ export function JourneyRanks({
   currentScore: number;
 }) {
   return (
-    <div className="border bg-card p-5">
-      <h2 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="rounded-xl border bg-card p-5">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Journey
       </h2>
       <div className="space-y-0">

@@ -14,11 +14,23 @@
 
 No Drizzle ORM — all DB access goes through Supabase client. Migrations use Supabase CLI (not Drizzle Kit).
 
-### Key tables (17 total)
-`users`, `sessions`, `schedules`, `user_preferences`, `topics`, `subtopics`, `lessons`, `problems`, `quiz_sessions`, `quiz_answers`, `micro_lessons`, `tutor_lesson_plans`, `custom_topics`, `custom_tutor_lesson_plans`, `learning_queue`, `onboarding_progress`, `friendships`
+### Key tables (21 total)
+`users`, `sessions`, `schedules`, `user_preferences`, `topics`, `subtopics`, `lessons`, `problems`, `quiz_sessions`, `quiz_answers`, `micro_lessons`, `tutor_lesson_plans`, `custom_topics`, `custom_tutor_lesson_plans`, `learning_queue`, `onboarding_progress`, `friendships`, `full_gmat_tests`, `full_gmat_test_problems`, `full_gmat_attempts`, `full_gmat_answers`
+
+### GMAT-specific columns added to `problems`
+`question_type` TEXT, `chart_data` JSONB, `passage_text` TEXT, `gmat_frequency` TEXT
+
+### Problem sources
+`sat` (legacy), `full_sat` (legacy), `gmat` (GMAT practice), `full_gmat` (full test bank), `practice`, `onboarding`, `custom`
+
+### GMAT question types
+`problem_solving`, `critical_reasoning`, `reading_comprehension`, `data_sufficiency`, `multi_source_reasoning`, `table_analysis`, `graphics_interpretation`, `two_part_analysis`
+
+### TPA storage convention
+Two-Part Analysis: `passage_text` stores the correct answer JSON `{"col1":N,"col2":N}`; `hint` stores col labels `"Col1: label|Col2: label"`
 
 ### Query modules (`src/lib/db/queries/`)
-`users`, `dashboard`, `progress`, `profile`, `lessons`, `learning-queue`, `schedules`, `quiz`, `sat-quiz`, `sessions`, `custom-learning`, `preferences`, `onboarding`
+`users`, `dashboard`, `progress`, `profile`, `lessons`, `learning-queue`, `schedules`, `quiz`, `sat-quiz`, `sessions`, `custom-learning`, `preferences`, `onboarding`, `full-gmat`, `gmat-quiz`
 
 ## Data Fetching — React Query
 

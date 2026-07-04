@@ -29,6 +29,7 @@ export function useStepPlayer(
   const [visibleStepIds, setVisibleStepIds] = useState<Set<number>>(new Set());
 
   const rafRef = useRef(0);
+  const animGenRef = useRef(0); // incremented each time startStep starts a new animation
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
 
@@ -108,9 +109,14 @@ export function useStepPlayer(
       setVisibleStepIds(buildVisibleIds(index));
 
       const startTime = performance.now();
-      const duration = step.durationMs || 800;
+      // Minimum 16 ms so we always spend at least one RAF frame per step,
+      // preventing synchronous "complete → waiting → advance → complete" chains
+      // that exceed React's max-update-depth limit.
+      const duration = Math.max(step.durationMs || 800, 16);
+      const gen = ++animGenRef.current;
 
       const tick = () => {
+        if (animGenRef.current !== gen) return; // stale animation — bail
         const elapsed = performance.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
         setStepProgress(progress);
@@ -118,7 +124,11 @@ export function useStepPlayer(
         if (progress < 1) {
           rafRef.current = requestAnimationFrame(tick);
         } else {
-          setState("waiting");
+          // Defer "waiting" by one more RAF frame to break any synchronous
+          // update chains that would exceed React's max-update-depth limit.
+          rafRef.current = requestAnimationFrame(() => {
+            if (animGenRef.current === gen) setState("waiting");
+          });
         }
       };
 
@@ -127,13 +137,17 @@ export function useStepPlayer(
     [buildVisibleIds],
   );
 
+  const startStepRef = useRef(startStep);
+  startStepRef.current = startStep;
+
   // Auto-start first step when it arrives
   useEffect(() => {
     if (steps.length > 0 && userStepIndex === -1) {
       setUserStepIndex(0);
-      startStep(0);
+      startStepRef.current(0);
     }
-  }, [steps.length, userStepIndex, startStep]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps.length, userStepIndex]);
 
   // When streaming finishes and we're on the last step, mark complete
   useEffect(() => {
@@ -146,6 +160,15 @@ export function useStepPlayer(
       setState("complete");
     }
   }, [state, userStepIndex, steps.length, isStreaming]);
+
+  // Go back to the previous step
+  const goBack = useCallback(() => {
+    const prevIndex = userStepIndex - 1;
+    if (prevIndex >= 0) {
+      setUserStepIndex(prevIndex);
+      startStep(prevIndex);
+    }
+  }, [userStepIndex, startStep]);
 
   // Advance to the next step (called by Continue button or after answering an interaction)
   const advance = useCallback(() => {
@@ -172,9 +195,10 @@ export function useStepPlayer(
       userStepIndex < steps.length &&
       stepsRef.current[userStepIndex]
     ) {
-      startStep(userStepIndex);
+      startStepRef.current(userStepIndex);
     }
-  }, [userStepIndex, steps.length, startStep]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userStepIndex, steps.length]);
 
   // Jump to end — show only the last section's steps (for cached lesson hydration)
   const jumpToEnd = useCallback(() => {
@@ -240,6 +264,7 @@ export function useStepPlayer(
     currentPrediction,
     currentFillBlank,
     advance,
+    goBack,
     jumpToEnd,
   };
 }

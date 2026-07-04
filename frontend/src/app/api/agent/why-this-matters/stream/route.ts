@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     description?: string;
     learningObjectives?: string[];
     keyFormulas?: { latex: string; description: string }[];
-    commonMistakes?: { mistake: string; correction: string; why: string }[];
+    commonMistakes?: Array<string | { mistake: string; correction: string; why: string }>;
     tipsAndTricks?: string[];
     conceptualOverview?: {
       definition: string;
@@ -41,6 +41,10 @@ export async function POST(req: Request) {
     );
   }
 
+  const normalizedMistakes = (commonMistakes ?? []).map((m) =>
+    typeof m === "string" ? { mistake: m, correction: "", why: "" } : m
+  );
+
   try {
     const res = await fetch(`${AGENT_URL}/why-this-matters/stream`, {
       method: "POST",
@@ -51,7 +55,7 @@ export async function POST(req: Request) {
         description: description || "",
         learning_objectives: learningObjectives || [],
         key_formulas: keyFormulas || [],
-        common_mistakes: commonMistakes || [],
+        common_mistakes: normalizedMistakes,
         tips_and_tricks: tipsAndTricks || [],
         conceptual_overview: conceptualOverview
           ? {

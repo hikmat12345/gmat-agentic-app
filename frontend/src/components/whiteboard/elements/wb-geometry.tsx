@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { GeometryAction, LocalPoint } from "@/types/whiteboard";
 
 type WbGeometryProps = {
@@ -28,11 +27,7 @@ export function WbGeometry({
   isAnimating,
 }: WbGeometryProps) {
   return (
-    <motion.g
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <g>
       {/* Figures */}
       {action.figures.map((fig, i) => {
         switch (fig.type) {
@@ -46,7 +41,7 @@ export function WbGeometry({
 
             return (
               <g key={`poly-${i}`}>
-                <motion.polygon
+                <polygon
                   points={pointsStr}
                   fill={fig.style?.fillColor ?? "rgba(59,130,246,0.08)"}
                   style={{ stroke: fig.style?.strokeColor ?? "var(--secondary-foreground)" }}
@@ -93,7 +88,7 @@ export function WbGeometry({
             const r = (fig.radius / 100) * Math.min(width, height);
             const circumference = 2 * Math.PI * r;
             return (
-              <motion.circle
+              <circle
                 key={`circ-${i}`}
                 cx={cx}
                 cy={cy}
@@ -113,7 +108,7 @@ export function WbGeometry({
             const ery = (fig.ry / 100) * height;
             const circumference = 2 * Math.PI * Math.max(erx, ery);
             return (
-              <motion.ellipse
+              <ellipse
                 key={`ell-${i}`}
                 cx={ecx}
                 cy={ecy}
@@ -133,7 +128,7 @@ export function WbGeometry({
             const [x2, y2] = toSvg(fig.to, x, y, width, height);
             const len = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
             return (
-              <motion.line
+              <line
                 key={`seg-${i}`}
                 x1={x1}
                 y1={y1}
@@ -346,6 +341,6 @@ export function WbGeometry({
           <path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: "var(--muted-foreground)" }} />
         </marker>
       </defs>
-    </motion.g>
+    </g>
   );
 }

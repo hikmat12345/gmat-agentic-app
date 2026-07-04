@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Clock, Search, BookOpen } from "lucide-react";
+import { Brain, Clock, Search, BookOpen } from "lucide-react";
+import { FeatureGate } from "@/components/subscription/feature-gate";
 
 const SUGGESTED_TOPICS = [
   "Python basics",
@@ -80,6 +81,10 @@ export default function MyLearningPage() {
   const topics = data?.topics ?? [];
 
   return (
+    <FeatureGate
+      feature="My Learning"
+      description="Create AI-generated lessons for any GMAT concept. Available on Athena Premium."
+    >
     <div className="flex h-[calc(100vh-3.5rem)]">
 
       {/* Left sidebar — previously explored */}
@@ -121,7 +126,7 @@ export default function MyLearningPage() {
           {/* Hero */}
           <div className="mb-10 text-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-athena-amber/10 px-4 py-1.5 text-xs font-medium text-athena-amber mb-4">
-              <Sparkles className="h-3.5 w-3.5" />
+              <Brain className="h-3.5 w-3.5" />
               Powered by Athena
             </div>
             <h1 className="text-4xl font-bold tracking-tight mb-3">
@@ -173,7 +178,7 @@ export default function MyLearningPage() {
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  <Sparkles className="h-4 w-4 text-athena-amber" />
+                  <Brain className="h-4 w-4 text-athena-amber" />
                 </motion.div>
                 <span className="text-sm text-muted-foreground">
                   Athena is preparing your lesson…
@@ -204,5 +209,6 @@ export default function MyLearningPage() {
         </div>
       </main>
     </div>
+    </FeatureGate>
   );
 }

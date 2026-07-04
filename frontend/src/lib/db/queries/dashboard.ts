@@ -85,7 +85,6 @@ export async function getDashboardData(userId: string) {
 
   let streak = 0;
   if (questHistory && questHistory.length > 0) {
-    // Check if the most recent quest is today or yesterday (streak is still active)
     const todayDate = new Date(today);
     const mostRecent = new Date(questHistory[0].quest_date);
     const daysSinceLast = Math.floor(
@@ -109,26 +108,45 @@ export async function getDashboardData(userId: string) {
     }
   }
 
-  // Scores
+  // GMAT composite score from users table (updated on each quest completion)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const [allScoresRes, weeklyScoresRes] = await Promise.all([
+  const db = supabase as any;
+
+  const [userRecord, recentAttempts] = await Promise.all([
     supabase
-      .from("quiz_sessions")
-      .select("score")
+      .from("users")
+      .select("target_score, current_composite")
+      .eq("id", userId)
+      .limit(1)
+      .maybeSingle(),
+    db
+      .from("full_gmat_attempts")
+      .select("total_score, completed_at")
       .eq("user_id", userId)
-      .eq("source", "sat"),
-    supabase
-      .from("quiz_sessions")
-      .select("score")
-      .eq("user_id", userId)
-      .eq("source", "sat")
-      .gte("created_at", sevenDaysAgo.toISOString()),
+      .eq("status", "completed")
+      .order("completed_at", { ascending: true }),
   ]);
 
-  const totalScore = (allScoresRes.data ?? []).reduce((sum, s) => sum + s.score, 0);
-  const weeklyDelta = (weeklyScoresRes.data ?? []).reduce((sum, s) => sum + s.score, 0);
+  const totalScore = userRecord.data?.current_composite ?? 205;
+  const targetScore = userRecord.data?.target_score ?? null;
+
+  // weeklyDelta: improvement in GMAT composite this week from full test attempts
+  const attempts: { total_score: number | null; completed_at: string | null }[] = recentAttempts.data ?? [];
+  const thisWeekAttempts = attempts.filter(
+    (a) => a.completed_at && new Date(a.completed_at) >= sevenDaysAgo
+  );
+  let weeklyDelta = 0;
+  if (thisWeekAttempts.length >= 2) {
+    const first = thisWeekAttempts[0].total_score ?? 0;
+    const last = thisWeekAttempts[thisWeekAttempts.length - 1].total_score ?? 0;
+    weeklyDelta = last - first;
+  } else if (thisWeekAttempts.length === 1 && attempts.length >= 2) {
+    const prevAttempt = attempts[attempts.length - 2];
+    const currAttempt = thisWeekAttempts[0];
+    weeklyDelta = (currAttempt.total_score ?? 0) - (prevAttempt.total_score ?? 0);
+  }
 
   const pendingLessons = queueItems.filter((q) => q.status !== "completed");
   const completedLessons = queueItems.filter((q) => q.status === "completed");
@@ -155,7 +173,7 @@ export async function getDashboardData(userId: string) {
     subtopicCount: subtopicsByTopic[t.id] ?? 0,
   }));
 
-  // Weekly streak days — based on daily quests, not sessions
+  // Weekly streak days — based on daily quests
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
@@ -181,28 +199,20 @@ export async function getDashboardData(userId: string) {
     return { day: abbrev, completed, isPast };
   });
 
-  // Battle zones: correct answers per topic
-  // Approach: fetch user's quiz sessions → answers → subtopics → topics, aggregate in JS
-  const { data: userSessions } = await supabase
+  // Battle zones: correct answers per topic from GMAT quiz sessions
+  const { data: userSessions } = await db
     .from("quiz_sessions")
     .select("id, subtopic_id")
     .eq("user_id", userId)
-    .eq("source", "sat");
-
-  const SAT_SECTION_MAP: Record<string, string> = {
-    "reading-and-writing": "Reading & Writing",
-    "algebra": "Math — No Calculator",
-    "geometry": "Math — Calculator",
-    "statistics": "Math — Calculator",
-    "advanced-math": "Math — No Calculator",
-  };
+    .eq("source", "gmat");
 
   let battleZones: { name: string; slug: string; done: number }[] = [];
+  const typedSessions: { id: string; subtopic_id: string | null }[] = userSessions ?? [];
 
-  if ((userSessions ?? []).length > 0) {
-    const sessionIds = (userSessions ?? []).map((s) => s.id);
+  if (typedSessions.length > 0) {
+    const sessionIds: string[] = typedSessions.map((s) => s.id);
     const subtopicIdsBySession: Record<string, string> = {};
-    for (const s of userSessions ?? []) {
+    for (const s of typedSessions) {
       if (s.subtopic_id) subtopicIdsBySession[s.id] = s.subtopic_id;
     }
 
@@ -222,8 +232,8 @@ export async function getDashboardData(userId: string) {
       subtopicToTopicId[st.id] = st.topic_id;
     }
 
-    const topicIdsInUse = new Set(
-      (userSessions ?? []).filter((s) => s.subtopic_id).map((s) => subtopicToTopicId[s.subtopic_id!]).filter(Boolean)
+    const topicIdsInUse = new Set<string>(
+      typedSessions.filter((s) => s.subtopic_id).map((s) => subtopicToTopicId[s.subtopic_id!]).filter((id): id is string => Boolean(id))
     );
 
     const { data: topicsData } = await supabase
@@ -237,7 +247,6 @@ export async function getDashboardData(userId: string) {
       topicById[t.id] = { name: t.name, slug: t.slug };
     }
 
-    // Count correct answers per topic
     const correctByTopic: Record<string, number> = {};
     for (const ans of answersRes.data ?? []) {
       const subtopicId = subtopicIdsBySession[ans.session_id];
@@ -248,7 +257,7 @@ export async function getDashboardData(userId: string) {
     }
 
     battleZones = (topicsData ?? []).map((t) => ({
-      name: SAT_SECTION_MAP[t.slug] || t.name,
+      name: t.name,
       slug: t.slug,
       done: correctByTopic[t.id] ?? 0,
     }));
@@ -266,69 +275,25 @@ export async function getDashboardData(userId: string) {
 
   const todayStudyTime = todayScheduleData?.start_time ?? null;
 
-  // User target score
-  const { data: userRecord } = await supabase
-    .from("users")
-    .select("target_score")
-    .eq("id", userId)
-    .limit(1)
-    .maybeSingle();
-
-  const targetScore = userRecord?.target_score ?? null;
-
-  // Friends scores
+  // Friends scores — use current_composite from their user records
   const { data: friendRows } = await supabase
     .from("friendships")
-    .select("friend_user_id, users!friend_user_id(display_name, avatar_url)")
+    .select("friend_user_id, users!friend_user_id(display_name, avatar_url, current_composite)")
     .eq("user_id", userId)
     .eq("status", "accepted");
 
-  type FriendUserInfo = { display_name: string | null; avatar_url: string | null };
-  const friendIds = (friendRows ?? []).map((f) => f.friend_user_id);
-  let friendsScores: {
-    id: string;
-    displayName: string | null;
-    avatarUrl: string | null;
-    totalScore: number;
-    weeklyDelta: number;
-  }[] = [];
+  type FriendUserInfo = { display_name: string | null; avatar_url: string | null; current_composite: number | null };
 
-  if (friendIds.length > 0) {
-    const [allFriendScoresRes, weeklyFriendScoresRes] = await Promise.all([
-      supabase
-        .from("quiz_sessions")
-        .select("user_id, score")
-        .in("user_id", friendIds)
-        .eq("source", "sat"),
-      supabase
-        .from("quiz_sessions")
-        .select("user_id, score")
-        .in("user_id", friendIds)
-        .eq("source", "sat")
-        .gte("created_at", sevenDaysAgo.toISOString()),
-    ]);
-
-    const totalScoreMap: Record<string, number> = {};
-    for (const r of allFriendScoresRes.data ?? []) {
-      totalScoreMap[r.user_id] = (totalScoreMap[r.user_id] ?? 0) + r.score;
-    }
-
-    const weeklyScoreMap: Record<string, number> = {};
-    for (const r of weeklyFriendScoresRes.data ?? []) {
-      weeklyScoreMap[r.user_id] = (weeklyScoreMap[r.user_id] ?? 0) + r.score;
-    }
-
-    friendsScores = (friendRows ?? []).map((f) => {
-      const userInfo = f.users as FriendUserInfo | null;
-      return {
-        id: f.friend_user_id,
-        displayName: userInfo?.display_name ?? null,
-        avatarUrl: userInfo?.avatar_url ?? null,
-        totalScore: totalScoreMap[f.friend_user_id] ?? 0,
-        weeklyDelta: weeklyScoreMap[f.friend_user_id] ?? 0,
-      };
-    });
-  }
+  const friendsScores = (friendRows ?? []).map((f) => {
+    const userInfo = f.users as FriendUserInfo | null;
+    return {
+      id: f.friend_user_id,
+      displayName: userInfo?.display_name ?? null,
+      avatarUrl: userInfo?.avatar_url ?? null,
+      totalScore: userInfo?.current_composite ?? 205,
+      weeklyDelta: 0,
+    };
+  });
 
   return {
     upcomingSessions,

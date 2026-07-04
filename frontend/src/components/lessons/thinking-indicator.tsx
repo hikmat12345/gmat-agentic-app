@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ThinkingIndicatorProps = {
@@ -28,7 +28,7 @@ export function ThinkingIndicator({ variant = "compact" }: ThinkingIndicatorProp
         animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Sparkles
+        <Brain
           className={cn(
             "text-athena-amber",
             isProminent ? "h-6 w-6" : "h-4 w-4"

@@ -8,6 +8,9 @@ import { MicroLesson } from "@/components/learning/micro-lesson";
 import type { Problem } from "@/components/quiz/types";
 import { WhiteboardSkeleton } from "@/components/whiteboard/whiteboard-skeleton";
 import { GenerationProgress } from "@/components/lessons/generation-progress";
+import { FeatureGate } from "@/components/subscription/feature-gate";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useTopicIsFree } from "@/hooks/use-topic-is-free";
 
 const HARDCODED_PROBLEMS: Problem[] = [
   {
@@ -57,6 +60,8 @@ export default function MicroLessonPage() {
   const params = useParams<{ topicSlug: string; subtopicSlug: string }>();
   const router = useRouter();
   const { topicSlug, subtopicSlug } = params;
+  const { isPremium, isLoading: subLoading } = useSubscription();
+  const { isFree, isLoading: freeLoading } = useTopicIsFree(topicSlug);
 
   // Once we start generating locally, stop polling so the refetch
   // doesn't unmount MicroLesson by switching to the "generating" spinner.
@@ -104,7 +109,7 @@ export default function MicroLessonPage() {
 
   if (metaLoading || lessonLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+      <div className="flex items-center justify-center h-[100dvh]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
       </div>
     );
@@ -116,7 +121,7 @@ export default function MicroLessonPage() {
   // (but not if we're the one generating)
   if (storedLesson?.status === "generating" && !generatingLocallyRef.current) {
     return (
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="flex flex-col h-[100dvh]">
         <div className="flex items-center justify-center py-6">
           <GenerationProgress />
         </div>
@@ -140,7 +145,7 @@ export default function MicroLessonPage() {
     generatingLocallyRef.current = true;
   }
 
-  return (
+  const lessonContent = (
     <MicroLesson
       topic={topic.name}
       subtopic={subtopic.name}
@@ -160,4 +165,16 @@ export default function MicroLessonPage() {
       tracking={storedLesson?.id ? { microLessonId: storedLesson.id, subtopicId: storedLesson.subtopicId ?? data.subtopic.id } : undefined}
     />
   );
+
+  // Free topics are always accessible; premium topics require subscription
+  const needsGate = !freeLoading && !subLoading && isFree === false && !isPremium;
+
+  return needsGate ? (
+    <FeatureGate
+      feature="AI Micro-lesson"
+      description="Interactive AI whiteboard lessons for every GMAT concept. Available on Athena Premium."
+    >
+      {lessonContent}
+    </FeatureGate>
+  ) : lessonContent;
 }

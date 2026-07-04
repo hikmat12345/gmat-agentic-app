@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getUserByClerkId, updateUser } from "@/lib/db/queries/users";
 import { completeDailyQuest } from "@/lib/db/queries/daily-quest";
 import { generateQuestForDate } from "@/lib/adaptive/generate-quest";
+import { computeFullGmatScore } from "@/lib/full-gmat/scoring";
 import { supabase } from "@/lib/supabase/client";
 import { NextResponse } from "next/server";
 
@@ -37,7 +38,6 @@ export async function POST(req: Request) {
   const correctCount = answered.filter((p) => p.is_correct).length;
   const score = correctCount;
 
-  // Sum XP from answered problems (already applied per-answer, but record total)
   let xpTotal = 0;
   for (const p of answered) {
     if (p.is_correct) {
@@ -56,63 +56,80 @@ export async function POST(req: Request) {
     timeElapsedSeconds,
   });
 
-  // Recompute section scores from all historical data
-  const { data: rwAnswers } = await (supabase as any)
+  // Recompute GMAT section scores from all historical GMAT quiz + daily quest answers
+  const { data: gmatAnswers } = await (supabase as any)
     .from("quiz_answers")
     .select("is_correct, quiz_sessions!inner(user_id, subtopic_id, subtopics!inner(topics!inner(subject)))")
     .eq("quiz_sessions.user_id", user.id)
-    .eq("quiz_sessions.source", "sat") as { data: any[] | null };
+    .eq("quiz_sessions.source", "gmat") as { data: any[] | null };
 
-  // Also include daily quest answers
   const { data: dqProblems } = await (supabase as any)
     .from("daily_quest_problems")
     .select("is_correct, subtopics!inner(topics!inner(subject)), daily_quests!inner(user_id)")
     .eq("daily_quests.user_id", user.id)
     .not("is_correct", "is", null) as { data: any[] | null };
 
-  let rwCorrect = 0, rwTotal = 0, mathCorrect = 0, mathTotal = 0;
+  let verbalCorrect = 0, verbalTotal = 0;
+  let quantCorrect = 0, quantTotal = 0;
+  let diCorrect = 0, diTotal = 0;
 
-  for (const a of rwAnswers ?? []) {
-    const session = a.quiz_sessions as {
-      subtopics: { topics: { subject: string } };
-    };
-    const subject = session?.subtopics?.topics?.subject;
-    if (subject === "math") {
-      mathTotal++;
-      if (a.is_correct) mathCorrect++;
-    } else {
-      rwTotal++;
-      if (a.is_correct) rwCorrect++;
+  const countBySubject = (subject: string, isCorrect: boolean) => {
+    switch (subject) {
+      case "verbal":
+        verbalTotal++;
+        if (isCorrect) verbalCorrect++;
+        break;
+      case "quantitative":
+        quantTotal++;
+        if (isCorrect) quantCorrect++;
+        break;
+      case "data_insights":
+        diTotal++;
+        if (isCorrect) diCorrect++;
+        break;
+      // Legacy SAT subjects still tracked for backward compat
+      case "math":
+        quantTotal++;
+        if (isCorrect) quantCorrect++;
+        break;
+      case "reading_writing":
+        verbalTotal++;
+        if (isCorrect) verbalCorrect++;
+        break;
     }
+  };
+
+  for (const a of gmatAnswers ?? []) {
+    const session = a.quiz_sessions as { subtopics: { topics: { subject: string } } };
+    const subject = session?.subtopics?.topics?.subject;
+    if (subject) countBySubject(subject, a.is_correct);
   }
 
   for (const p of dqProblems ?? []) {
     const subtopic = p.subtopics as { topics: { subject: string } };
     const subject = subtopic?.topics?.subject;
-    if (subject === "math") {
-      mathTotal++;
-      if (p.is_correct) mathCorrect++;
-    } else {
-      rwTotal++;
-      if (p.is_correct) rwCorrect++;
-    }
+    if (subject) countBySubject(subject, p.is_correct);
   }
 
-  const rwAccuracy = rwTotal > 0 ? rwCorrect / rwTotal : 0;
-  const mathAccuracy = mathTotal > 0 ? mathCorrect / mathTotal : 0;
-  const rwScore = Math.min(800, Math.round(200 + rwAccuracy * 600));
-  const mathScore = Math.min(800, Math.round(200 + mathAccuracy * 600));
-  const composite = rwScore + mathScore;
+  // Compute GMAT section scores using real raw counts
+  const { verbalScaled, quantScaled, diScaled, total } = computeFullGmatScore(
+    verbalCorrect,
+    quantCorrect,
+    diCorrect,
+    verbalTotal || 23,
+    quantTotal || 21,
+    diTotal || 20
+  );
 
   const updates: Record<string, number> = {
-    currentComposite: composite,
-    currentReadingWriting: rwScore,
-    currentMath: mathScore,
+    currentComposite: total,
+    currentVerbal: verbalScaled,
+    currentQuantitative: quantScaled,
+    currentDataInsights: diScaled,
   };
 
-  // Set start_composite on first quest ever
   if (user.startComposite == null) {
-    updates.startComposite = composite;
+    updates.startComposite = total;
   }
 
   await updateUser(clerkId, updates);
@@ -122,18 +139,18 @@ export async function POST(req: Request) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
-    await generateQuestForDate(user.id, tomorrowDate, composite);
+    await generateQuestForDate(user.id, tomorrowDate, total);
   } catch (e) {
-    // Don't fail the completion if pre-generation fails
     console.error("Failed to pre-generate tomorrow's quest:", e);
   }
 
   return NextResponse.json({
     quest,
     scores: {
-      readingWriting: rwScore,
-      math: mathScore,
-      composite,
+      verbal: verbalScaled,
+      quantitative: quantScaled,
+      dataInsights: diScaled,
+      composite: total,
     },
   });
 }

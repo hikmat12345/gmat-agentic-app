@@ -22,8 +22,8 @@ export function StudyStats({ stats }: { stats: Stats }) {
       : 0;
 
   return (
-    <div className="border bg-card p-5">
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+    <div className="rounded-xl border bg-card p-5">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Study Stats
       </h2>
       <p className="mt-2 text-3xl font-bold tabular-nums">

@@ -7,6 +7,7 @@ import {
   computeGlobalFloor,
   composeDailyQuestBuckets,
   distributeQuestQuestions,
+  applyGmatSectionBalance,
 } from "@/lib/adaptive/engine";
 import { supabase } from "@/lib/supabase/client";
 import type { SubsectionSkill } from "@/types/adaptive";
@@ -51,7 +52,13 @@ export async function generateQuestForDate(
 
   // Get bucket assignments and question distribution
   const buckets = composeDailyQuestBuckets(adjustedSkills, globalFloor);
-  const distribution = distributeQuestQuestions(buckets, 20);
+  const rawDistribution = distributeQuestQuestions(buckets, 20);
+
+  // For GMAT curricula: rebalance so Verbal/Quantitative/DataInsights each get ~1/3
+  const subtopicSectionMap = new Map(
+    adjustedSkills.map((s) => [s.subtopicId, s.sectionCategory])
+  );
+  const distribution = applyGmatSectionBalance(rawDistribution, subtopicSectionMap, 20);
 
   // Fetch recently answered problem IDs to avoid repeats (last 200)
   const { data: recentAnswers } = await (supabase as any)
@@ -97,7 +104,7 @@ export async function generateQuestForDate(
     const { data: candidates } = await (supabase as any)
       .from("problems")
       .select("id, difficulty_level")
-      .eq("source", "sat")
+      .in("source", ["gmat", "sat", "practice"])
       .eq("subtopic_id", entry.subtopicId)
       .gte("difficulty_level", minDiff)
       .lte("difficulty_level", maxDiff)

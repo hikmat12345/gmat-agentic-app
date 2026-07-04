@@ -17,8 +17,8 @@ type ScorePoint = {
 export function ScoreHistory({ data }: { data: ScorePoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="border bg-muted/30 p-6 h-full">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="rounded-xl border bg-muted/30 p-6 h-full">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Score History
         </h2>
         <p className="mt-6 text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export function ScoreHistory({ data }: { data: ScorePoint[] }) {
 
   return (
     <div className="border bg-muted/30 p-6 h-full flex flex-col">
-      <h2 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Score History
       </h2>
       <div className="flex-1 min-h-[200px]">

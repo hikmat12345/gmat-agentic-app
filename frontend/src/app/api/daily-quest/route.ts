@@ -26,6 +26,9 @@ export async function GET() {
       result = await getTodaysQuestWithDetails(user.id);
     } catch (e) {
       console.error("Failed to auto-generate quest:", e);
+      if (process.env.NODE_ENV === "development") {
+        return NextResponse.json({ error: String(e), quest: null, problems: null }, { status: 500 });
+      }
     }
   }
 

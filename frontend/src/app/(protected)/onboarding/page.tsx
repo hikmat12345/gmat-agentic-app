@@ -18,7 +18,7 @@ export default function OnboardingPage() {
     }
 
     const step = data.onboarding?.currentStep ?? "plan";
-    if (step === "plan" || step === "gist") {
+    if (step === "plan" || (step as string) === "gist") {
       router.replace("/onboarding/plan");
     } else if (step === "quiz") {
       router.replace("/onboarding/quiz");
@@ -29,17 +29,13 @@ export default function OnboardingPage() {
     }
   }, [data, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center gap-8 pt-12">
-        <ProgressStepper currentStep="quiz" />
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          <span>Setting things up...</span>
-        </div>
+  return (
+    <div className="flex flex-col items-center gap-8 pt-12">
+      <ProgressStepper currentStep="quiz" />
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span>Setting things up...</span>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

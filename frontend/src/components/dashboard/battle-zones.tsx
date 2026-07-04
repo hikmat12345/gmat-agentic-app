@@ -11,10 +11,10 @@ export function BattleZones({ zones }: { zones: BattleZone[] }) {
     return (
       <div className="border bg-card p-5">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Battle Zones
+          Focus Areas
         </h3>
         <p className="text-sm text-muted-foreground">
-          Complete quizzes to see your progress here.
+          Complete practice sessions to see your progress here.
         </p>
       </div>
     );
@@ -25,7 +25,7 @@ export function BattleZones({ zones }: { zones: BattleZone[] }) {
   return (
     <div className="border bg-card p-5">
       <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Battle Zones
+        Focus Areas
       </h3>
       <div className="space-y-3">
         {zones.map((zone) => {

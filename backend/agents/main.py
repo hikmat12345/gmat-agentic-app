@@ -9,6 +9,7 @@ tokens and whiteboard steps.
 
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -31,13 +32,36 @@ from app.pre_generation.problem_generator import generate_problems_batch
 load_dotenv()
 
 from app.cron.session_reminders import session_reminder_loop
+from app.cron.weekly_summary import weekly_summary_loop
+
+
+def _no_api_key_response(service: str = "AI") -> StreamingResponse:
+    """Return a proper SSE error event when ANTHROPIC_API_KEY is not configured."""
+    msg = (
+        f"{service} service is not configured. "
+        "Please add your ANTHROPIC_API_KEY to backend/agents/.env and restart the agent server."
+    )
+
+    async def gen():
+        yield f"data: {json.dumps({'error': msg})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(session_reminder_loop())
+    tasks = [
+        asyncio.create_task(session_reminder_loop()),
+        asyncio.create_task(weekly_summary_loop()),
+    ]
     yield
-    task.cancel()
+    for t in tasks:
+        t.cancel()
 
 
 app = FastAPI(title="Athena Agents", version="0.1.0", lifespan=lifespan)
@@ -227,6 +251,9 @@ def _remaining_after_extraction(text: str) -> str:
 
 @app.post("/chat/stream")
 async def chat_stream_endpoint(req: ChatRequest):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return _no_api_key_response("Tutor")
+
     async def event_generator():
         try:
             raw = ask_tutor_stream(
@@ -253,6 +280,9 @@ async def chat_stream_endpoint(req: ChatRequest):
 
 @app.post("/mentor-chat/stream")
 async def mentor_chat_stream_endpoint(req: MentorChatRequest):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return _no_api_key_response("Mentor")
+
     history = [m.model_dump() for m in req.history] if req.history else None
 
     async def event_generator():
@@ -360,6 +390,9 @@ class MicroLessonChatRequest(BaseModel):
 
 @app.post("/micro-lesson/stream")
 async def micro_lesson_stream_endpoint(req: MicroLessonRequest):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return _no_api_key_response("Micro-lesson")
+
     metadata = {
         "description": req.description,
         "learning_objectives": req.learning_objectives,
@@ -635,6 +668,9 @@ class LessonSummaryRequest(BaseModel):
 
 @app.post("/lesson-summary")
 async def lesson_summary_endpoint(req: LessonSummaryRequest):
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=503, detail="AI service not configured. Please add ANTHROPIC_API_KEY to backend/agents/.env")
+
     import anthropic
 
     score_context = (

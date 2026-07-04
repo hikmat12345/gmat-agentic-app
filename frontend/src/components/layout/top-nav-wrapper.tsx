@@ -1,12 +1,5 @@
-"use client";
-
-import { usePathname } from "next/navigation";
-import { TopNav } from "./top-nav";
-
+// Navigation is now handled by Sidebar (desktop) + MobileTopBar + MobileTabBar.
+// This component is kept as a no-op to avoid breaking any existing imports.
 export function TopNavWrapper() {
-  const pathname = usePathname();
-
-  if (pathname.startsWith("/onboarding")) return null;
-
-  return <TopNav />;
+  return null;
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Mic, Keyboard, ChevronUp, ChevronDown, Sparkles } from "lucide-react";
+import { Send, Mic, Keyboard, ChevronUp, ChevronDown, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MessageBubble } from "@/components/lessons/message-bubble";
 import { VoiceOrb } from "@/components/lessons/voice-orb";
@@ -100,7 +100,7 @@ export function TutorChatBar({
             >
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-8 gap-2">
-                  <Sparkles className="h-6 w-6 text-athena-amber opacity-60" />
+                  <Brain className="h-6 w-6 text-athena-amber opacity-60" />
                   <p className="text-xs text-muted-foreground text-center">
                     Stuck on this question? Athena can help guide you through it.
                   </p>
@@ -122,7 +122,7 @@ export function TutorChatBar({
         {/* Latest message subtitle */}
         {(lastTutorMessage || isProcessing) && !historyExpanded && (
           <div className="px-4 pt-2 pb-1 flex items-start gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-athena-amber shrink-0 mt-0.5" />
+            <Brain className="h-3.5 w-3.5 text-athena-amber shrink-0 mt-0.5" />
             {isProcessing && !lastTutorMessage ? (
               <span className="text-xs text-muted-foreground italic">Athena is thinking...</span>
             ) : lastTutorMessage ? (

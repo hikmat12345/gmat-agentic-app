@@ -110,9 +110,25 @@
   --correct: 155 70% 50%;
 
   /* Whiteboard */
-  --wb-canvas:       oklch(0.99 0.015 90);
+  --wb-canvas:       #050911;
   --wb-hover-fill:   oklch(0.96 0.06 80);
   --wb-hover-stroke: oklch(0.82 0.14 75);
+
+  /* Orb presence layer (--obs-* used by observation-orb + presence-layer) */
+  --obs-surface: oklch(0.12 0.005 80 / 0.85);
+  --obs-fg: oklch(0.96 0.005 80);
+  --obs-muted: oklch(0.62 0.005 80);
+  --obs-glow-mid: oklch(0.65 0.24 245);
+
+  /* GMAT question-type tag colors */
+  --qt-ps:  280 70% 55%;   /* Problem Solving — purple */
+  --qt-ds:  220 80% 55%;   /* Data Sufficiency — blue */
+  --qt-cr:  28  90% 52%;   /* Critical Reasoning — orange */
+  --qt-rc:  155 65% 42%;   /* Reading Comprehension — green */
+  --qt-msr: 185 70% 42%;   /* Multi-Source Reasoning — teal */
+  --qt-ta:  245 60% 55%;   /* Table Analysis — indigo */
+  --qt-gi:  330 65% 55%;   /* Graphics Interpretation — pink */
+  --qt-tpa: 42  85% 48%;   /* Two-Part Analysis — gold */
 }
 
 .dark {
@@ -165,9 +181,19 @@
   --correct: 155 70% 55%;
 
   /* Whiteboard */
-  --wb-canvas:       oklch(0.19 0.025 260);
+  --wb-canvas:       #050911;
   --wb-hover-fill:   oklch(0.25 0.04 75);
   --wb-hover-stroke: oklch(0.65 0.15 75);
+
+  /* GMAT question-type tag colors (dark mode — slightly lighter for contrast) */
+  --qt-ps:  280 65% 65%;
+  --qt-ds:  220 75% 65%;
+  --qt-cr:  28  85% 62%;
+  --qt-rc:  155 60% 52%;
+  --qt-msr: 185 65% 52%;
+  --qt-ta:  245 55% 65%;
+  --qt-gi:  330 60% 65%;
+  --qt-tpa: 42  80% 58%;
 }
 
 @layer base {
@@ -231,4 +257,15 @@
 @keyframes border-rotate {
   from { transform: rotate(0deg) scale(2.5); }
   to { transform: rotate(360deg) scale(2.5); }
+}
+
+/* Orb presence layer animations */
+@keyframes obs-ring-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes obs-ripple {
+  0%   { transform: scale(1);   opacity: 0.45; }
+  100% { transform: scale(2.1); opacity: 0;    }
 }

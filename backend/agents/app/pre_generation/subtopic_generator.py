@@ -13,7 +13,7 @@ SUBJECT_LABELS = {
 
 subtopic_agent = Agent(
     name="SAT Subtopic Generator",
-    model=Claude(id="claude-sonnet-4-20250514"),
+    model=Claude(id="claude-sonnet-4-6"),
     description="You generate comprehensive SAT subtopic metadata.",
     instructions=[
         "You are an expert SAT curriculum designer.",

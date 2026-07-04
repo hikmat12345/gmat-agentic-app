@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { QuizLayoutProvider } from "@/components/learning/quiz/quiz-layout-provider";
 import type { Problem } from "@/components/quiz/types";
+import { FeatureGate } from "@/components/subscription/feature-gate";
+import { useSubscription } from "@/hooks/use-subscription";
+import { useTopicIsFree } from "@/hooks/use-topic-is-free";
 
 type PageData = {
   topic: { slug: string; name: string };
@@ -16,6 +19,8 @@ type PageData = {
 export default function QuizLayout({ children }: { children: React.ReactNode }) {
   const params = useParams<{ topicSlug: string; subtopicSlug: string }>();
   const router = useRouter();
+  const { isPremium, isLoading: subLoading } = useSubscription();
+  const { isFree, isLoading: freeLoading } = useTopicIsFree(params.topicSlug);
 
   const { data, isLoading, isError } = useQuery<PageData>({
     queryKey: ["learning", params.topicSlug, params.subtopicSlug],
@@ -43,32 +48,39 @@ export default function QuizLayout({ children }: { children: React.ReactNode }) 
   }
 
   const subtopicId = data.subtopic.id;
+  const needsGate = !freeLoading && !subLoading && isFree === false && !isPremium;
 
   return (
-    <QuizLayoutProvider
-      problems={data.problems}
-      topicName={data.topic.name}
-      subtopicName={data.subtopic.name}
-      subject="math"
-      basePath={`/learning/${params.topicSlug}/${params.subtopicSlug}`}
-      practiceProblemsUrl={`/api/learning/${params.topicSlug}/${params.subtopicSlug}/practice-problems`}
-      onSaveResults={async ({ score, totalQuestions, timeElapsedSeconds, answers, events }) => {
-        const res = await fetch("/api/sat-quiz/submit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subtopicId,
-            score,
-            totalQuestions,
-            timeElapsedSeconds,
-            answers,
-            events,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to save results");
-      }}
+    <FeatureGate
+      feature="GMAT Quiz"
+      description="Practice questions with Socratic AI tutor support for all 8 question types. Available on Athena Premium."
+      bypass={!needsGate}
     >
-      {children}
-    </QuizLayoutProvider>
+      <QuizLayoutProvider
+        problems={data.problems}
+        topicName={data.topic.name}
+        subtopicName={data.subtopic.name}
+        subject="math"
+        basePath={`/learning/${params.topicSlug}/${params.subtopicSlug}`}
+        practiceProblemsUrl={`/api/learning/${params.topicSlug}/${params.subtopicSlug}/practice-problems`}
+        onSaveResults={async ({ score, totalQuestions, timeElapsedSeconds, answers, events }) => {
+          const res = await fetch("/api/sat-quiz/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              subtopicId,
+              score,
+              totalQuestions,
+              timeElapsedSeconds,
+              answers,
+              events,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to save results");
+        }}
+      >
+        {children}
+      </QuizLayoutProvider>
+    </FeatureGate>
   );
 }

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, LayoutTemplate, PenTool, Sparkles } from "lucide-react";
+import { Search, LayoutTemplate, PenTool, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PHASES = [
   { message: "Analyzing the topic…", icon: Search, delay: 0 },
   { message: "Building lesson structure…", icon: LayoutTemplate, delay: 3000 },
   { message: "Drawing your whiteboard…", icon: PenTool, delay: 7000 },
-  { message: "Almost there…", icon: Sparkles, delay: 12000 },
+  { message: "Almost there…", icon: Brain, delay: 12000 },
 ];
 
 export function GenerationProgress({ className }: { className?: string }) {

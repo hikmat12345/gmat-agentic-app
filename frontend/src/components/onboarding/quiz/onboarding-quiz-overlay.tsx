@@ -185,7 +185,7 @@ export function OnboardingQuizOverlay() {
             type: "correct",
             correctOption: result.correctOption,
           });
-          toast.success("Correct!");
+          toast.success("Correct!", { duration: 1500 });
         } else {
           setAnswerState({
             type: "wrong",
@@ -339,6 +339,28 @@ export function OnboardingQuizOverlay() {
   }
 
   const question = questions[currentIndex];
+
+  // No questions loaded — show a clear error instead of a blank screen
+  if (questions.length === 0) {
+    const emptyOverlay = (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <div className="space-y-4 text-center max-w-sm px-6">
+          <p className="text-lg font-semibold">Quiz unavailable</p>
+          <p className="text-sm text-muted-foreground">
+            No diagnostic questions are available right now. Please contact support or try again later.
+          </p>
+          <button
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            onClick={() => router.push("/onboarding/schedule")}
+          >
+            Skip to schedule
+          </button>
+        </div>
+      </div>
+    );
+    return createPortal(emptyOverlay, document.body);
+  }
+
   if (!question) return null;
 
   const problem = questionToProblem(question);

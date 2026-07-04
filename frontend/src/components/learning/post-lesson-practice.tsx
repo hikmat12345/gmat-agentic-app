@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Sparkles, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { Brain, CheckCircle, XCircle, ChevronRight } from "lucide-react";
 import { PracticeGradientCard } from "@/components/quiz/practice-gradient-card";
 import { LessonCongratsScreen } from "@/components/learning/lesson-congrats-screen";
 import type { Problem } from "@/components/quiz/types";
@@ -87,7 +87,7 @@ export function PostLessonPractice({
           animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Sparkles className="h-8 w-8 text-athena-amber" />
+          <Brain className="h-8 w-8 text-athena-amber" />
         </motion.div>
         <p className="text-sm text-muted-foreground">
           Preparing practice problems…

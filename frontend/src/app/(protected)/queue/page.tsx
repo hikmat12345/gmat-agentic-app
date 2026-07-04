@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { ProgressHeader } from "@/components/progress/progress-header";
+import { BarChart3, Target, CheckCircle2 } from "lucide-react";
 import { SectionScores } from "@/components/progress/section-scores";
 import { SatSkills } from "@/components/progress/sat-skills";
 import { CompositeScore } from "@/components/progress/composite-score";
@@ -13,6 +13,25 @@ import { StudyStats } from "@/components/progress/study-stats";
 import { TopicMastery } from "@/components/progress/topic-mastery";
 import { PracticeTestResults } from "@/components/progress/practice-test-results";
 import { JourneyRanks } from "@/components/progress/journey-ranks";
+import { ActivityCalendar } from "@/components/progress/activity-calendar";
+import { ScoreProjection } from "@/components/progress/score-projection";
+import { WeaknessHeatmap } from "@/components/progress/weakness-heatmap";
+
+type SectionData = {
+  subject: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+  scaledScore: number;
+};
+
+type QuestionTypePerf = {
+  type: string;
+  label: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+};
 
 type ProgressData = {
   user: {
@@ -22,6 +41,8 @@ type ProgressData = {
     skillScore: number | null;
   };
   targetScore: number | null;
+  activityCalendar: { date: string; count: number }[];
+  questionTypePerformance: QuestionTypePerf[];
   scoreHistory: { date: string; score: number }[];
   accuracyByDifficulty: {
     difficulty: string;
@@ -53,20 +74,10 @@ type ProgressData = {
     avgScore: number;
   };
   sectionScores: {
-    readingWriting: {
-      subject: string;
-      total: number;
-      correct: number;
-      accuracy: number;
-      scaledScore: number;
-    };
-    math: {
-      subject: string;
-      total: number;
-      correct: number;
-      accuracy: number;
-      scaledScore: number;
-    };
+    verbal: SectionData;
+    quantitative: SectionData;
+    dataInsights: SectionData;
+    compositeScore: number;
   };
   topicMastery: {
     items: {
@@ -114,15 +125,14 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
-        <div className="h-16 w-72 bg-muted animate-pulse" />
-        <div className="mt-8 space-y-6">
-          <div className="h-40 bg-muted animate-pulse" />
-          <div className="h-32 bg-muted animate-pulse" />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            <div className="h-64 bg-muted animate-pulse lg:col-span-3" />
-            <div className="h-64 bg-muted animate-pulse lg:col-span-2" />
-          </div>
+      <div className="mx-auto max-w-7xl p-6 space-y-5">
+        <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+        <div className="grid grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />)}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="h-64 animate-pulse rounded-xl bg-muted lg:col-span-3" />
+          <div className="h-64 animate-pulse rounded-xl bg-muted lg:col-span-2" />
         </div>
       </div>
     );
@@ -130,36 +140,59 @@ export default function ProgressPage() {
 
   if (!data) return null;
 
-  const compositeScore =
-    data.sectionScores.readingWriting.scaledScore +
-    data.sectionScores.math.scaledScore;
-  const targetScore = data.user.targetScore ?? data.targetScore ?? 1400;
+  const compositeScore = data.sectionScores.compositeScore;
+  const targetScore = data.user.targetScore ?? data.targetScore ?? 655;
+
+  const headerStats = [
+    { icon: BarChart3,    label: "Composite",  value: compositeScore > 205 ? compositeScore : "—", color: "#60a5fa", bg: "#2563eb" },
+    { icon: Target,       label: "Target",     value: targetScore,                                  color: "#2dd4bf", bg: "#0d9488" },
+    { icon: CheckCircle2, label: "Accuracy",   value: `${data.overallStats.accuracy}%`,             color: "#a78bfa", bg: "#7c3aed" },
+  ];
 
   return (
     <div className="p-6 pb-16">
       <motion.div
-        className="mx-auto max-w-5xl"
+        className="mx-auto max-w-5xl space-y-5"
         variants={staggerContainer}
         initial="hidden"
         animate="show"
       >
-        {/* Header */}
-        <motion.div variants={staggerItem}>
-          <ProgressHeader />
+        {/* ── Hero header ── */}
+        <motion.div variants={staggerItem} className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">GMAT Progress</p>
+              <h1 className="mt-0.5 text-2xl font-bold tracking-tight">Your Analytics</h1>
+              <p className="text-sm text-muted-foreground">Focus Edition · 205–805 scale</p>
+            </div>
+            <div className="flex gap-3 sm:ml-auto">
+              {headerStats.map(({ icon: Icon, label, value, color, bg }) => (
+                <div
+                  key={label}
+                  className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-border/40 py-3 px-4"
+                  style={{ background: `${bg}10` }}
+                >
+                  <Icon className="h-4 w-4" style={{ color }} />
+                  <span className="text-xl font-bold tabular-nums">{value}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
-        {/* Section Scores + SAT Skills row */}
+        {/* Section Scores + GMAT Skills row */}
         <motion.div variants={staggerItem}>
-          <h2 className="mt-8 mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Section Scores
           </h2>
         </motion.div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <motion.div className="lg:col-span-3 gap-6 grid" variants={staggerItem}>
             <SectionScores
-              rw={data.sectionScores.readingWriting}
-              math={data.sectionScores.math}
-              targetScore={targetScore}
+              verbal={data.sectionScores.verbal}
+              quantitative={data.sectionScores.quantitative}
+              dataInsights={data.sectionScores.dataInsights}
             />
 
             <CompositeScore
@@ -183,6 +216,27 @@ export default function ProgressPage() {
             <TopicMastery mastery={data.topicMastery} />
           </motion.div>
         </div>
+
+        {/* Analytics row: Score Projection + Weakness Heatmap */}
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <motion.div variants={staggerItem} className="rounded-xl border bg-card p-5 space-y-3">
+            <h2 className="text-sm font-semibold">Score Projection</h2>
+            <ScoreProjection
+              history={data.scoreHistory}
+              targetScore={targetScore}
+              currentScore={compositeScore > 205 ? compositeScore : null}
+            />
+          </motion.div>
+          <motion.div variants={staggerItem} className="rounded-xl border bg-card p-5 space-y-3">
+            <h2 className="text-sm font-semibold">Question Type Breakdown</h2>
+            <WeaknessHeatmap data={data.questionTypePerformance ?? []} />
+          </motion.div>
+        </div>
+
+        {/* Activity Calendar */}
+        <motion.div variants={staggerItem} className="mt-6 rounded-xl border bg-card p-5">
+          <ActivityCalendar data={data.activityCalendar ?? []} />
+        </motion.div>
 
         {/* Practice Test Results */}
         <motion.div className="mt-6" variants={staggerItem}>

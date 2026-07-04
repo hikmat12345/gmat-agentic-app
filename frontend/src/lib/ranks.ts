@@ -10,15 +10,13 @@ export type Rank = {
 };
 
 export const RANKS: Rank[] = [
-  { name: "Novice", threshold: 800, weapon: "Rock of Knowledge", icon: Sword, emoji: "🪨" },
-  { name: "Scout", threshold: 900, weapon: "Scouting Dagger", icon: Sword, emoji: "🗡" },
-  { name: "Warrior", threshold: 1000, weapon: "Blade of Persistence", icon: Swords, emoji: "⚔" },
-  { name: "Knight", threshold: 1100, weapon: "Shield of Focus", icon: Shield, emoji: "🛡" },
-  { name: "Champion", threshold: 1200, weapon: "Bow of Precision", icon: Flame, emoji: "🏹" },
-  { name: "Master", threshold: 1300, weapon: "Staff of Wisdom", icon: Star, emoji: "🔮" },
-  { name: "Legend", threshold: 1400, weapon: "Crown of Glory", icon: Crown, emoji: "👑" },
-  { name: "Dragon Slayer", threshold: 1500, weapon: "Dragon's Bane", icon: Zap, emoji: "🐉" },
-  { name: "Ascended", threshold: 1600, weapon: "Celestial Glory", icon: Sparkles, emoji: "✨" },
+  { name: "Novice",       threshold: 205, weapon: "Rock of Knowledge",    icon: Sword,    emoji: "🪨" },
+  { name: "Apprentice",   threshold: 405, weapon: "Scouting Dagger",      icon: Sword,    emoji: "🗡️" },
+  { name: "Practitioner", threshold: 505, weapon: "Blade of Persistence", icon: Swords,   emoji: "⚔️" },
+  { name: "Adept",        threshold: 565, weapon: "Shield of Focus",      icon: Shield,   emoji: "🛡️" },
+  { name: "Expert",       threshold: 605, weapon: "Bow of Precision",     icon: Flame,    emoji: "🏹" },
+  { name: "Master",       threshold: 655, weapon: "Staff of Wisdom",      icon: Star,     emoji: "🔮" },
+  { name: "Elite",        threshold: 705, weapon: "Crown of Glory",       icon: Crown,    emoji: "👑" },
 ];
 
 export function getRank(score: number): Rank {

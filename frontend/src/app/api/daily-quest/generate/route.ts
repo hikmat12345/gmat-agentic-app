@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getUserByClerkId } from "@/lib/db/queries/users";
 import { getTodaysQuestWithDetails } from "@/lib/db/queries/daily-quest";
 import { generateQuestForDate } from "@/lib/adaptive/generate-quest";
+import { requirePremium } from "@/lib/subscription";
 import { NextResponse } from "next/server";
 
 export async function POST() {
@@ -13,6 +14,11 @@ export async function POST() {
   const user = await getUserByClerkId(clerkId);
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const access = await requirePremium(user.id);
+  if (!access.ok) {
+    return NextResponse.json({ error: "Premium subscription required" }, { status: 403 });
   }
 
   // Check if quest already exists for today

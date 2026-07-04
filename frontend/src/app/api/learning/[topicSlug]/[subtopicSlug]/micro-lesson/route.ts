@@ -123,6 +123,17 @@ export async function POST(
           .eq("subtopic_id", subtopicId);
         return NextResponse.json({ acquired: true });
       }
+      // Another client is actively generating
+      return NextResponse.json({ acquired: false });
+    }
+
+    // Error or stale status — allow regeneration
+    if (existing.status === "error" || existing.status === "stale") {
+      await supabase
+        .from("micro_lessons")
+        .update({ status: "generating", lesson_content: "", whiteboard_steps: [], updated_at: new Date().toISOString() })
+        .eq("subtopic_id", subtopicId);
+      return NextResponse.json({ acquired: true });
     }
 
     return NextResponse.json({ acquired: false });
@@ -134,7 +145,7 @@ export async function POST(
       whiteboardSteps: WhiteboardStep[];
     };
 
-    await supabase
+    const { error: saveError } = await supabase
       .from("micro_lessons")
       .update({
         status: "ready",
@@ -143,6 +154,11 @@ export async function POST(
         updated_at: new Date().toISOString(),
       })
       .eq("subtopic_id", subtopicId);
+
+    if (saveError) {
+      console.error("[micro-lesson/save] Supabase error:", saveError);
+      return NextResponse.json({ error: saveError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true });
   }

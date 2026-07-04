@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 
+const db = supabase as any;
+
 export async function getProfileData(userId: string) {
   const [
     userRes,
@@ -8,7 +10,7 @@ export async function getProfileData(userId: string) {
   ] = await Promise.all([
     supabase
       .from("users")
-      .select("display_name, avatar_url, created_at, target_score, best_streak")
+      .select("display_name, avatar_url, created_at, target_score, best_streak, current_composite")
       .eq("id", userId)
       .limit(1)
       .maybeSingle(),
@@ -18,19 +20,20 @@ export async function getProfileData(userId: string) {
       .eq("user_id", userId)
       .order("scheduled_date", { ascending: false })
       .limit(30),
-    supabase
+    db
       .from("quiz_sessions")
       .select("id, score, total_questions, time_elapsed_seconds")
       .eq("user_id", userId)
-      .eq("source", "sat"),
+      .eq("source", "gmat"),
   ]);
 
   const userRecord = userRes.data;
   const sessionHistory = sessionsRes.data ?? [];
-  const quizSessions = quizSessionsRes.data ?? [];
+  type QSRow = { id: string; score: number; total_questions: number; time_elapsed_seconds: number };
+  const quizSessions: QSRow[] = quizSessionsRes.data ?? [];
 
-  // Fetch answers for all quiz sessions
-  const sessionIds = quizSessions.map((s) => s.id);
+  // Fetch answers for all gmat quiz sessions
+  const sessionIds: string[] = quizSessions.map((s) => s.id);
   let totalAnswers = 0;
   let correctAnswers = 0;
 
@@ -44,8 +47,47 @@ export async function getProfileData(userId: string) {
     correctAnswers = answers?.filter((a) => a.is_correct).length ?? 0;
   }
 
-  // Calculate current streak
+  // Calculate current streak from daily quests
+  const today = new Date().toISOString().split("T")[0];
+  const { data: questHistory } = await supabase
+    .from("daily_quests")
+    .select("quest_date, status")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .order("quest_date", { ascending: false });
+
   let streak = 0;
+  if (questHistory && questHistory.length > 0) {
+    const todayDate = new Date(today);
+    const mostRecent = new Date(questHistory[0].quest_date);
+    const daysSinceLast = Math.floor(
+      (todayDate.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysSinceLast <= 1) {
+      streak = 1;
+      for (let i = 1; i < questHistory.length; i++) {
+        const curr = new Date(questHistory[i].quest_date);
+        const prev = new Date(questHistory[i - 1].quest_date);
+        const diffDays = Math.round(
+          (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (diffDays === 1) streak++;
+        else break;
+      }
+    }
+  }
+
+  // totalScore = GMAT composite (205-805); falls back to 205 if not yet set
+  const totalScore = userRecord?.current_composite ?? 205;
+  const totalTimeSeconds = quizSessions.reduce(
+    (sum, s) => sum + s.time_elapsed_seconds,
+    0
+  );
+  const accuracy =
+    totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+  const questsDone = quizSessions.length;
+
+  // Legacy session streak (for fallback)
   const completedHistory = sessionHistory
     .filter((s) => s.status === "completed")
     .sort(
@@ -54,28 +96,17 @@ export async function getProfileData(userId: string) {
         new Date(a.scheduled_date).getTime()
     );
 
-  if (completedHistory.length > 0) {
+  if (streak === 0 && completedHistory.length > 0) {
     streak = 1;
     for (let i = 1; i < completedHistory.length; i++) {
       const curr = new Date(completedHistory[i].scheduled_date);
       const prev = new Date(completedHistory[i - 1].scheduled_date);
       const diffDays =
         (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays <= 7) {
-        streak++;
-      } else {
-        break;
-      }
+      if (diffDays <= 7) streak++;
+      else break;
     }
   }
-
-  const totalScore = quizSessions.reduce((sum, s) => sum + s.score, 0);
-  const totalTimeSeconds = quizSessions.reduce(
-    (sum, s) => sum + s.time_elapsed_seconds,
-    0
-  );
-  const accuracy =
-    totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
 
   return {
     user: userRecord
@@ -88,7 +119,7 @@ export async function getProfileData(userId: string) {
         }
       : null,
     totalScore,
-    questsDone: quizSessions.length,
+    questsDone,
     totalTimeSeconds,
     accuracy,
     streak,

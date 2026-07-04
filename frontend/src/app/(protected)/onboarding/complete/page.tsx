@@ -1,14 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ProgressStepper } from "@/components/onboarding/progress-stepper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Brain, ArrowRight } from "lucide-react";
 
 export default function CompletePage() {
-  const router = useRouter();
+  // Use a hard navigation so the user cache is always fresh when dashboard loads.
+  // router.push() can read a stale "onboardingCompleted=false" cache and loop back.
+  const goToDashboard = () => { window.location.href = "/dashboard"; };
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -33,7 +34,7 @@ export default function CompletePage() {
               }}
               className="mx-auto mb-2"
             >
-              <Sparkles className="h-14 w-14 text-athena-amber" />
+              <Brain className="h-14 w-14 text-athena-amber" />
             </motion.div>
             <CardTitle className="text-2xl">You&apos;re all set!</CardTitle>
           </CardHeader>
@@ -66,7 +67,7 @@ export default function CompletePage() {
               <Button
                 size="lg"
                 className="w-full"
-                onClick={() => router.push("/dashboard")}
+                onClick={goToDashboard}
               >
                 Go to Dashboard
                 <ArrowRight className="ml-2 h-4 w-4" />
