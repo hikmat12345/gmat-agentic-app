@@ -44,7 +44,7 @@ export function WbGeometry({
                 <polygon
                   points={pointsStr}
                   fill={fig.style?.fillColor ?? "rgba(59,130,246,0.08)"}
-                  style={{ stroke: fig.style?.strokeColor ?? "var(--secondary-foreground)" }}
+                  style={{ stroke: fig.style?.strokeColor ?? "var(--wb-ink)" }}
                   strokeWidth={fig.style?.strokeWidth ?? 2}
                   strokeLinejoin="round"
                   strokeDasharray={isAnimating ? perimeter : (fig.style?.dashed ? "6 4" : undefined)}
@@ -71,7 +71,7 @@ export function WbGeometry({
                       dominantBaseline="middle"
                       fontSize="14"
                       fontWeight="bold"
-                      style={{ fill: "var(--secondary-foreground)" }}
+                      style={{ fill: "var(--wb-ink)" }}
                       fontFamily="system-ui, sans-serif"
                     >
                       {label}
@@ -94,7 +94,7 @@ export function WbGeometry({
                 cy={cy}
                 r={r}
                 fill={fig.style?.fillColor ?? "none"}
-                style={{ stroke: fig.style?.strokeColor ?? "var(--secondary-foreground)" }}
+                style={{ stroke: fig.style?.strokeColor ?? "var(--wb-ink)" }}
                 strokeWidth={fig.style?.strokeWidth ?? 2}
                 strokeDasharray={isAnimating ? circumference : (fig.style?.dashed ? "6 4" : undefined)}
                 strokeDashoffset={isAnimating ? circumference * (1 - progress) : 0}
@@ -115,7 +115,7 @@ export function WbGeometry({
                 rx={erx}
                 ry={ery}
                 fill={fig.style?.fillColor ?? "none"}
-                style={{ stroke: fig.style?.strokeColor ?? "var(--secondary-foreground)" }}
+                style={{ stroke: fig.style?.strokeColor ?? "var(--wb-ink)" }}
                 strokeWidth={fig.style?.strokeWidth ?? 2}
                 strokeDasharray={isAnimating ? circumference : (fig.style?.dashed ? "6 4" : undefined)}
                 strokeDashoffset={isAnimating ? circumference * (1 - progress) : 0}
@@ -134,7 +134,7 @@ export function WbGeometry({
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                style={{ stroke: fig.style?.strokeColor ?? "var(--secondary-foreground)" }}
+                style={{ stroke: fig.style?.strokeColor ?? "var(--wb-ink)" }}
                 strokeWidth={fig.style?.strokeWidth ?? 2}
                 strokeDasharray={isAnimating ? len : (fig.style?.dashed ? "6 4" : undefined)}
                 strokeDashoffset={isAnimating ? len * (1 - progress) : 0}
@@ -189,7 +189,7 @@ export function WbGeometry({
                 <path
                   d={`M${p1x},${p1y} L${cx2},${cy2} L${p2x},${p2y}`}
                   fill="none"
-                  style={{ stroke: "var(--secondary-foreground)" }}
+                  style={{ stroke: "var(--wb-ink)" }}
                   strokeWidth="1.5"
                 />
               </g>
@@ -215,7 +215,7 @@ export function WbGeometry({
                   y1={y1 + oy}
                   x2={x2 + ox}
                   y2={y2 + oy}
-                  style={{ stroke: "var(--muted-foreground)" }}
+                  style={{ stroke: "var(--wb-ink-muted)" }}
                   strokeWidth="1"
                   markerStart="url(#dim-arrow-start)"
                   markerEnd="url(#dim-arrow-end)"
@@ -225,7 +225,7 @@ export function WbGeometry({
                   y={(y1 + y2) / 2 + oy - 4}
                   textAnchor="middle"
                   fontSize="12"
-                  style={{ fill: "var(--secondary-foreground)" }}
+                  style={{ fill: "var(--wb-ink)" }}
                   fontFamily="system-ui, sans-serif"
                 >
                   {ann.label}
@@ -254,7 +254,7 @@ export function WbGeometry({
                 <path
                   d={`M${startX},${startY} A${r},${r} 0 ${largeArc} 1 ${endX},${endY}`}
                   fill="none"
-                  style={{ stroke: "var(--muted-foreground)" }}
+                  style={{ stroke: "var(--wb-ink-muted)" }}
                   strokeWidth="1"
                 />
                 {ann.label && (
@@ -264,7 +264,7 @@ export function WbGeometry({
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize="10"
-                    style={{ fill: "var(--secondary-foreground)" }}
+                    style={{ fill: "var(--wb-ink)" }}
                     fontFamily="system-ui, sans-serif"
                   >
                     {ann.label}
@@ -300,7 +300,7 @@ export function WbGeometry({
                   y1={cy2 + ny * tickLen}
                   x2={cx2 - nx * tickLen}
                   y2={cy2 - ny * tickLen}
-                  style={{ stroke: "var(--secondary-foreground)" }}
+                  style={{ stroke: "var(--wb-ink)" }}
                   strokeWidth="1.5"
                 />,
               );
@@ -324,7 +324,7 @@ export function WbGeometry({
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={lbl.fontSize ?? 12}
-            style={{ fill: "var(--secondary-foreground)" }}
+            style={{ fill: "var(--wb-ink)" }}
             fontFamily="system-ui, sans-serif"
           >
             {lbl.text}
@@ -335,10 +335,10 @@ export function WbGeometry({
       {/* Shared marker defs for dimension arrows */}
       <defs>
         <marker id="dim-arrow-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-          <path d="M 10 0 L 0 5 L 10 10 z" style={{ fill: "var(--muted-foreground)" }} />
+          <path d="M 10 0 L 0 5 L 10 10 z" style={{ fill: "var(--wb-ink-muted)" }} />
         </marker>
         <marker id="dim-arrow-end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="4" markerHeight="4" orient="auto">
-          <path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: "var(--muted-foreground)" }} />
+          <path d="M 0 0 L 10 5 L 0 10 z" style={{ fill: "var(--wb-ink-muted)" }} />
         </marker>
       </defs>
     </g>

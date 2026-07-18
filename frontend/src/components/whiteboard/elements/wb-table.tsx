@@ -54,11 +54,11 @@ export function WbTable({
                     key={col}
                     style={{
                       padding: "6px 12px",
-                      borderBottom: "2px solid var(--secondary-foreground)",
+                      borderBottom: "2px solid var(--wb-ink-muted)",
                       textAlign: "left",
                       fontWeight: "bold",
-                      color: "var(--foreground)",
-                      backgroundColor: "var(--muted)",
+                      color: "var(--wb-ink)",
+                      backgroundColor: "rgba(255,255,255,0.06)",
                     }}
                   >
                     {h}
@@ -81,8 +81,8 @@ export function WbTable({
                         key={col}
                         style={{
                           padding: "5px 12px",
-                          borderBottom: "1px solid var(--border)",
-                          color: "var(--secondary-foreground)",
+                          borderBottom: "1px solid rgba(255,255,255,0.12)",
+                          color: "var(--wb-ink-muted)",
                           backgroundColor: hlColor ? `${hlColor}33` : "transparent",
                         }}
                       >

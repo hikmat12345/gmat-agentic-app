@@ -13,6 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+type GmatSection = "verbal" | "quantitative" | "data_insights";
+
+const SECTION_STYLES: Record<GmatSection, { label: string; className: string }> = {
+  verbal:        { label: "Verbal",       className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  quantitative:  { label: "Quantitative", className: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20" },
+  data_insights: { label: "Data Insights", className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
+};
+
 type ToolbarProps = {
   displayTime: string;
   isLow: boolean;
@@ -23,6 +31,8 @@ type ToolbarProps = {
   onClose: () => void;
   hasAnswers: boolean;
   subtopicName: string;
+  /** GMAT section tag shown as a colored chip */
+  gmatSection?: GmatSection;
   /** Hide entire timer section (default true) */
   showTimer?: boolean;
   /** Hide calculator button (default true) */
@@ -45,6 +55,7 @@ export function Toolbar({
   onClose,
   hasAnswers,
   subtopicName,
+  gmatSection,
   showTimer = true,
   showCalc = true,
   title,
@@ -74,6 +85,14 @@ export function Toolbar({
             <BookOpen className="mr-1 h-4 w-4" />
             Directions
           </Button>
+          {gmatSection && (
+            <span className={cn(
+              "hidden sm:inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+              SECTION_STYLES[gmatSection].className
+            )}>
+              {SECTION_STYLES[gmatSection].label}
+            </span>
+          )}
           <span className="text-sm text-muted-foreground hidden sm:inline">
             {title ?? subtopicName}
           </span>

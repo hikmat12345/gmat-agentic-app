@@ -1,7 +1,7 @@
 @ -1,50 +0,0 @@
 """
 Lesson generator agent — produces structured JSONB lesson content
-for SAT Math questions using Agno.
+for GMAT questions using Agno.
 """
 
 from agno.agent import Agent
@@ -10,13 +10,13 @@ from agno.models.openai import OpenAIChat
 lesson_generator = Agent(
     name="Athena Lesson Generator",
     model=OpenAIChat(id="gpt-4o-mini"),
-    description="You generate interactive SAT Math lessons.",
+    description="You generate interactive GMAT lessons.",
     instructions=[
-        "You are an expert SAT Math tutor.",
-        "Given a math question, its correct answer, and its category, "
+        "You are an expert GMAT tutor.",
+        "Given a question, its correct answer, and its category, "
         "generate a structured lesson with exactly 3 sections.",
         "Section 1: type='explanation', title='Why this matters' — explain why "
-        "this concept matters for SAT success.",
+        "this concept matters for GMAT success.",
         "Section 2: type='walkthrough', title='Step-by-step' — provide a list "
         "of clear, numbered steps to solve the problem.",
         "Section 3: type='insight', title='The Aha Moment' — give a memorable "

@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Athena — GMAT Prep",
   description:
-    "AI-powered GMAT Focus Edition preparation with adaptive tutoring and structured accountability.",
+    "GMAT COACH GMAT Focus Edition preparation with adaptive tutoring and structured accountability.",
 };
 
 export default function RootLayout({

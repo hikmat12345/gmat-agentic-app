@@ -109,10 +109,13 @@
   --orange: 25 95% 55%;
   --correct: 155 70% 50%;
 
-  /* Whiteboard */
+  /* Whiteboard — canvas is always dark (#050911) in both themes */
   --wb-canvas:       #050911;
   --wb-hover-fill:   oklch(0.96 0.06 80);
   --wb-hover-stroke: oklch(0.82 0.14 75);
+  /* Always-light ink colors for text/lines drawn on the dark canvas */
+  --wb-ink:          #e8ecf4;
+  --wb-ink-muted:    rgba(232, 236, 244, 0.55);
 
   /* Orb presence layer (--obs-* used by observation-orb + presence-layer) */
   --obs-surface: oklch(0.12 0.005 80 / 0.85);
@@ -184,6 +187,8 @@
   --wb-canvas:       #050911;
   --wb-hover-fill:   oklch(0.25 0.04 75);
   --wb-hover-stroke: oklch(0.65 0.15 75);
+  --wb-ink:          #e8ecf4;
+  --wb-ink-muted:    rgba(232, 236, 244, 0.55);
 
   /* GMAT question-type tag colors (dark mode — slightly lighter for contrast) */
   --qt-ps:  280 65% 65%;

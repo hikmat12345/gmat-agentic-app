@@ -8,8 +8,17 @@ import { getTopicIcon } from "@/lib/topic-icons";
 import { cn } from "@/lib/utils";
 import { ScoreBandRail, SCORE_BANDS, type ScoreBand } from "@/components/learning/score-band-rail";
 import { QuestionTypeTag, type QuestionType } from "@/components/learning/question-type-tag";
-import { ChevronRight, BookOpen, Clock, Layers, Lock } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronRight, Clock, Layers, Lock, CheckCircle2, Star, Zap } from "lucide-react";
 import { useSubscription } from "@/hooks/use-subscription";
+
+type RecentSubtopic = {
+  subtopicId: string;
+  subtopicName: string;
+  subtopicSlug: string;
+  topicName: string;
+  topicSlug: string;
+  lastSeenAt: string;
+};
 
 type Topic = {
   id: string;
@@ -23,6 +32,8 @@ type Topic = {
   subject: string;
   orderIndex: number;
   isFree: boolean;
+  completedSubtopics: number;
+  startedSubtopics: number;
 };
 
 const SUBJECTS = [
@@ -30,9 +41,39 @@ const SUBJECTS = [
   { key: "verbal",        label: "Verbal" },
   { key: "quantitative",  label: "Quantitative" },
   { key: "data_insights", label: "Data Insights" },
-  { key: "math",          label: "Math" },
-  { key: "reading_writing", label: "Reading & Writing" },
 ] as const;
+
+type Phase = { label: string; description: string; scoreRange: string; color: string; bg: string };
+
+const PHASES: Phase[] = [
+  {
+    label: "Foundation",
+    description: "Core concepts that appear on every GMAT exam. Master these first.",
+    scoreRange: "Up to 605",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-500/8 border-blue-500/20",
+  },
+  {
+    label: "Practice",
+    description: "Intermediate skills that separate 600 from 650+ scores.",
+    scoreRange: "605 – 654",
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-500/8 border-violet-500/20",
+  },
+  {
+    label: "Mastery",
+    description: "Advanced question types that unlock 700+ performance.",
+    scoreRange: "655 – 805",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/8 border-amber-500/20",
+  },
+];
+
+function getPhaseIndex(orderIndex: number): number {
+  if (orderIndex <= 2) return 0; // Foundation
+  if (orderIndex <= 5) return 1; // Practice
+  return 2;                       // Mastery
+}
 
 /** Derive question type tags from topic name / subject */
 function getTopicQuestionTypes(topic: Topic): QuestionType[] {
@@ -74,12 +115,12 @@ function getSubjectStyle(subject: string) {
 
 // ── Quest row ──────────────────────────────────────────────────────────────
 
-function QuestRow({ topic, index, isFirst, locked }: { topic: Topic; index: number; isFirst: boolean; locked: boolean }) {
+function QuestRow({ topic, index, showNextBadge, locked }: { topic: Topic; index: number; showNextBadge: boolean; locked: boolean }) {
   const Icon = getTopicIcon(topic.slug);
   const types = getTopicQuestionTypes(topic);
   const band = getTopicBand(topic);
   const style = getSubjectStyle(topic.subject);
-  const isNext = isFirst && !locked;
+  const isNext = showNextBadge && !locked;
 
   const rowContent = (
     <>
@@ -150,6 +191,18 @@ function QuestRow({ topic, index, isFirst, locked }: { topic: Topic; index: numb
               {topic.estimatedTotalMinutes} min
             </div>
           )}
+          {!locked && topic.completedSubtopics > 0 && (
+            <div className="flex items-center gap-1 text-xs text-emerald-500/80">
+              <CheckCircle2 className="h-3 w-3" />
+              {topic.completedSubtopics}/{topic.subtopics.length} done
+            </div>
+          )}
+          {!locked && topic.completedSubtopics === 0 && topic.startedSubtopics > 0 && (
+            <div className="flex items-center gap-1 text-xs text-amber-500/80">
+              <div className="h-2 w-2 rounded-full bg-amber-500/70" />
+              In progress
+            </div>
+          )}
         </div>
       </div>
 
@@ -193,8 +246,29 @@ function QuestRow({ topic, index, isFirst, locked }: { topic: Topic; index: numb
                 Start <ChevronRight className="h-4 w-4" />
               </div>
             </div>
-            <div className="hidden md:flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all group-hover:bg-primary/90 group-hover:shadow-md">
-              Start <ChevronRight className="h-4 w-4" />
+            <div className="hidden md:flex flex-col items-end gap-1.5">
+              {topic.completedSubtopics > 0 && topic.subtopics.length > 0 && (
+                <div className="w-20 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${(topic.completedSubtopics / topic.subtopics.length) * 100}%` }}
+                  />
+                </div>
+              )}
+              <div className={cn(
+                "flex items-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold transition-all",
+                topic.completedSubtopics === topic.subtopics.length && topic.subtopics.length > 0
+                  ? "bg-emerald-500 text-white group-hover:bg-emerald-600"
+                  : "bg-primary text-primary-foreground group-hover:bg-primary/90 group-hover:shadow-md"
+              )}>
+                {topic.completedSubtopics === topic.subtopics.length && topic.subtopics.length > 0 ? (
+                  <><CheckCircle2 className="h-4 w-4" /> Done</>
+                ) : topic.startedSubtopics > 0 ? (
+                  <>Continue <ChevronRight className="h-4 w-4" /></>
+                ) : (
+                  <>Start <ChevronRight className="h-4 w-4" /></>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -231,6 +305,119 @@ function QuestRow({ topic, index, isFirst, locked }: { topic: Topic; index: numb
   );
 }
 
+// ── Phase header divider ───────────────────────────────────────────────────
+
+function PhaseHeader({ phase, isFirst }: { phase: Phase; isFirst: boolean }) {
+  return (
+    <div className={cn(
+      "grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-border/60",
+      phase.bg,
+      !isFirst && "border-t border-border/60"
+    )}>
+      <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", phase.color, "ring-1 ring-current/30")}>
+        {phase.label.slice(0, 1)}
+      </div>
+      <div className="min-w-0">
+        <span className={cn("text-xs font-bold uppercase tracking-widest", phase.color)}>
+          {phase.label}
+        </span>
+        <span className="ml-2 text-xs text-muted-foreground hidden sm:inline">
+          — {phase.description}
+        </span>
+      </div>
+      <span className={cn("text-[11px] font-semibold tabular-nums", phase.color)}>
+        {phase.scoreRange}
+      </span>
+    </div>
+  );
+}
+
+// ── Milestone row between phases ──────────────────────────────────────────
+
+const PHASE_MILESTONES = [
+  { from: "Foundation", to: "Practice",  pts: "+40",  score: "605+", icon: "🎯" },
+  { from: "Practice",   to: "Mastery",   pts: "+60",  score: "655+", icon: "⭐" },
+];
+
+function MilestoneRow({ phaseLabel, allDone, phaseTopics }: { phaseLabel: string; allDone: boolean; phaseTopics: Topic[] }) {
+  const milestone = PHASE_MILESTONES.find(m => m.from === phaseLabel);
+  if (!milestone) return null;
+
+  const done = phaseTopics.filter(t => t.completedSubtopics === t.subtopics.length && t.subtopics.length > 0).length;
+  const total = phaseTopics.length;
+
+  return (
+    <div className={cn(
+      "flex items-center gap-4 px-5 py-3.5 border-y border-dashed",
+      allDone
+        ? "bg-emerald-500/5 border-emerald-500/25"
+        : "bg-muted/30 border-border/50"
+    )}>
+      <div className={cn(
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm",
+        allDone ? "bg-emerald-500/15" : "bg-muted"
+      )}>
+        {allDone ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <span className="text-base">{milestone.icon}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={cn("text-xs font-semibold", allDone ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+          {allDone
+            ? `${phaseLabel} complete — ${milestone.pts} pts estimate unlocked`
+            : `Complete ${phaseLabel} to unlock ${milestone.to} (${milestone.score} target) — est. ${milestone.pts} pts`}
+        </p>
+        {!allDone && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="h-1 flex-1 max-w-[120px] overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full rounded-full bg-primary/60 transition-all"
+                style={{ width: total > 0 ? `${(done / total) * 100}%` : "0%" }}
+              />
+            </div>
+            <span className="text-[10px] text-muted-foreground tabular-nums">{done}/{total}</span>
+          </div>
+        )}
+      </div>
+      {allDone && <Star className="h-4 w-4 text-emerald-500 shrink-0" />}
+    </div>
+  );
+}
+
+// ── Stuck-area recommendation banner ─────────────────────────────────────
+
+type StuckPoint = { subtopicId: string; subtopicName: string; subtopicSlug: string; topicName: string; topicSlug: string; metrics: { accuracy: number } };
+
+function StuckRecommendationBanner({ visible }: { visible: boolean }) {
+  const { data } = useQuery<{ stuckPoints: StuckPoint[]; summary: { totalSubtopicsAttempted: number; stuckCount: number } }>({
+    queryKey: ["analytics", "stuck-points"],
+    queryFn: () => fetch("/api/analytics/stuck-points").then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+    staleTime: 5 * 60_000,
+    enabled: visible,
+  });
+
+  const top = data?.stuckPoints?.[0];
+  if (!top || !data?.summary?.totalSubtopicsAttempted) return null;
+
+  return (
+    <Link
+      href={`/learning/${top.topicSlug}/${top.subtopicSlug}/quiz`}
+      className="mb-4 flex items-center gap-3.5 rounded-xl border border-amber-500/25 bg-amber-500/5 px-5 py-3.5 transition-colors hover:bg-amber-500/10"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
+        <Zap className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+          Athena recommends: {top.subtopicName}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {top.topicName} · {top.metrics.accuracy}% accuracy — practice this to move your score
+        </p>
+      </div>
+      <ArrowRight className="h-4 w-4 text-amber-500 shrink-0" />
+    </Link>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function LearningPage() {
@@ -238,7 +425,7 @@ export default function LearningPage() {
   const [activeBand, setActiveBand] = useState<ScoreBand>(null);
   const { isPremium } = useSubscription();
 
-  const { data, isLoading: loading, isError } = useQuery<{ topics: Topic[] }>({
+  const { data, isLoading: loading, isError } = useQuery<{ topics: Topic[]; recentSubtopic: RecentSubtopic | null }>({
     queryKey: ["learning"],
     queryFn: () =>
       fetch("/api/learning").then((r) => {
@@ -253,6 +440,7 @@ export default function LearningPage() {
   }, [isError]);
 
   const topics = data?.topics ?? [];
+  const recentSubtopic = data?.recentSubtopic ?? null;
   const availableSubjects = Array.from(new Set(topics.map((t) => t.subject)));
   const visibleSubjects = SUBJECTS.filter(
     (s) => s.key === "all" || availableSubjects.includes(s.key)
@@ -281,6 +469,15 @@ export default function LearningPage() {
     );
   }
 
+  const hasAnyActivity = topics.some((t) => t.startedSubtopics > 0 || t.completedSubtopics > 0);
+  const hasNoActivity = topics.length > 0 && activeSubject === "all" && !activeBand && !hasAnyActivity;
+
+  // First unlocked topic the user hasn't started, or first still-incomplete unlocked topic
+  const isUnlocked = (t: Topic) => t.isFree || isPremium;
+  const nextTopicId =
+    filteredTopics.find(t => isUnlocked(t) && t.startedSubtopics === 0)?.id ??
+    filteredTopics.find(t => isUnlocked(t) && t.completedSubtopics < t.subtopics.length)?.id;
+
   return (
     <div className="mx-auto max-w-7xl p-6">
 
@@ -296,6 +493,51 @@ export default function LearningPage() {
           Follow the guided roadmap to master every GMAT topic
         </p>
       </div>
+
+      {/* ── Adaptive focus banner — from stuck-points analytics ──────── */}
+      {hasAnyActivity && activeSubject === "all" && !activeBand && (
+        <StuckRecommendationBanner visible={hasAnyActivity} />
+      )}
+
+      {/* ── "Continue where you left off" banner ─────────────────── */}
+      {recentSubtopic && activeSubject === "all" && !activeBand && (
+        <Link
+          href={`/learning/${recentSubtopic.topicSlug}/${recentSubtopic.subtopicSlug}`}
+          className="mb-4 flex items-center gap-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4 transition-colors hover:bg-emerald-500/10"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-lg">
+            ▶️
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Continue where you left off</p>
+            <p className="mt-0.5 text-xs text-muted-foreground truncate">
+              {recentSubtopic.subtopicName} · {recentSubtopic.topicName}
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-emerald-500 shrink-0" />
+        </Link>
+      )}
+
+      {/* ── "Start Here" banner (shown when no subject/band filter active) ── */}
+      {hasNoActivity && !recentSubtopic && (
+        <div className="mb-6 flex items-start gap-4 rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg">
+            🎯
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Start at Foundation</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              The roadmap is organised into three phases. Begin with Foundation topics — Critical Reasoning and Reading Comprehension appear on every GMAT exam and form the base of your Verbal score.
+            </p>
+          </div>
+          <Link
+            href={topics[0] ? `/learning/${topics[0].slug}` : "/learning"}
+            className="shrink-0 flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Begin <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* ── Score band roadmap ────────────────────────────────── */}
       <div className="mb-6 rounded-xl border border-border/60 bg-card p-4">
@@ -326,7 +568,7 @@ export default function LearningPage() {
         </div>
       )}
 
-      {/* ── Quest table ───────────────────────────────────────── */}
+      {/* ── Quest table with phase dividers ──────────────────── */}
       {filteredTopics.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-border/60">
           {/* Column headers — desktop only */}
@@ -338,16 +580,47 @@ export default function LearningPage() {
             <div className="text-center">Action</div>
           </div>
 
-          {/* Rows */}
-          {filteredTopics.map((topic, i) => (
-            <QuestRow
-              key={topic.id}
-              topic={topic}
-              index={i}
-              isFirst={i === 0}
-              locked={!topic.isFree && !isPremium}
-            />
-          ))}
+          {/* Rows with phase dividers + milestones when no filter is active */}
+          {filteredTopics.map((topic, i) => {
+            const showPhaseHeader =
+              !activeBand &&
+              activeSubject === "all" &&
+              (i === 0 || getPhaseIndex(topic.orderIndex) !== getPhaseIndex(filteredTopics[i - 1].orderIndex));
+            const phaseIdx = getPhaseIndex(topic.orderIndex);
+
+            // Milestone: show BEFORE the new phase header (i.e. after the last topic of the previous phase)
+            const prevPhaseIdx = i > 0 ? getPhaseIndex(filteredTopics[i - 1].orderIndex) : -1;
+            const showMilestone =
+              !activeBand && activeSubject === "all" && i > 0 && phaseIdx !== prevPhaseIdx;
+
+            const prevPhaseTopics = showMilestone
+              ? filteredTopics.filter(t => getPhaseIndex(t.orderIndex) === prevPhaseIdx)
+              : [];
+            const prevPhaseAllDone =
+              prevPhaseTopics.length > 0 &&
+              prevPhaseTopics.every(t => t.completedSubtopics === t.subtopics.length && t.subtopics.length > 0);
+
+            return (
+              <div key={topic.id}>
+                {showMilestone && (
+                  <MilestoneRow
+                    phaseLabel={PHASES[prevPhaseIdx].label}
+                    allDone={prevPhaseAllDone}
+                    phaseTopics={prevPhaseTopics}
+                  />
+                )}
+                {showPhaseHeader && (
+                  <PhaseHeader phase={PHASES[phaseIdx]} isFirst={i === 0} />
+                )}
+                <QuestRow
+                  topic={topic}
+                  index={i}
+                  showNextBadge={topic.id === nextTopicId}
+                  locked={!topic.isFree && !isPremium}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="py-16 text-center text-sm text-muted-foreground">

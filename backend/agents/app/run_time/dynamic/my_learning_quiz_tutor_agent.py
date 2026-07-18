@@ -1,6 +1,6 @@
 """
 My Learning Quiz Tutor — a general-purpose Socratic guide for any subject.
-Not restricted to SAT Math.
+Not restricted to any specific exam format.
 """
 
 from agno.agent import Agent

@@ -288,6 +288,51 @@ export default function FullGmatLandingPage() {
         </p>
       </motion.div>
 
+      {/* Exam format strip */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4"
+      >
+        {[
+          { label: "Sections", value: "3" },
+          { label: "Total Questions", value: "64" },
+          { label: "Total Time", value: "~2hr 15min" },
+          { label: "Score Range", value: "205–805" },
+        ].map(({ label, value }) => (
+          <div key={label} className="flex flex-col items-center gap-0.5 rounded-xl border border-border/60 bg-card px-3 py-3">
+            <span className="text-xl font-bold tabular-nums">{value}</span>
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</span>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Exam rules reminder */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.08 }}
+        className="mb-6 flex flex-wrap items-start gap-4 rounded-xl border border-border/40 bg-muted/30 px-5 py-4 text-xs text-muted-foreground"
+      >
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+          No going back to previous questions
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+          Calculator available for Quant &amp; DI
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+          No calculator for Verbal
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+          Choose your own section order
+        </div>
+      </motion.div>
+
       {/* Resume banner */}
       {status.currentAttempt && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
@@ -389,7 +434,7 @@ export default function FullGmatLandingPage() {
 
           {/* Start button */}
           <button
-            onClick={handleStart}
+            onClick={() => handleStart()}
             disabled={startMutation.isPending}
             className="mt-5 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-md disabled:opacity-50"
           >

@@ -41,6 +41,7 @@ type CompletionData = {
   skillScore: number;
   totalQuestions: number;
   correctCount: number;
+  gmatScores?: { verbal: number; quantitative: number; dataInsights: number; composite: number };
 };
 
 /** Convert an onboarding Question into the shared Problem shape */

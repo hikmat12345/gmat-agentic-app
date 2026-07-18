@@ -15,6 +15,16 @@ import { ResultsScreen } from "@/components/quiz/results-screen";
 import { PostLessonPractice } from "@/components/learning/post-lesson-practice";
 import { StuckModal } from "@/components/quiz/stuck-modal";
 
+type GmatSection = "verbal" | "quantitative" | "data_insights";
+
+function deriveGmatSection(topicName: string): GmatSection {
+  const n = topicName.toLowerCase();
+  if (n.includes("problem solving")) return "quantitative";
+  if (n.includes("data sufficiency") || n.includes("multi-source") || n.includes("table analysis") || n.includes("graphics interpretation") || n.includes("two-part")) return "data_insights";
+  // Critical Reasoning and Reading Comprehension → Verbal
+  return "verbal";
+}
+
 export function QuizProblemPageContent() {
   const router = useRouter();
   const params = useParams<{ problemNumber: string }>();
@@ -136,6 +146,8 @@ export function QuizProblemPageContent() {
           score={quiz.score}
           elapsed={timer.elapsed}
           aiSummary={aiSummary}
+          topicSlug={basePath.split("/")[2]}
+          subtopicSlug={basePath.split("/")[3]}
           onRetry={() => {
             setSaveStatus("idle");
             setFeedbackMap(new Map());
@@ -168,6 +180,7 @@ export function QuizProblemPageContent() {
         onClose={() => router.push(basePath)}
         hasAnswers={quiz.answers.size > 0}
         subtopicName={subtopicName}
+        gmatSection={deriveGmatSection(topicName)}
       />
       <SegmentProgressBar
         total={problems.length}

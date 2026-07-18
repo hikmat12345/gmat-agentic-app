@@ -14,6 +14,7 @@ import { StatsCards } from "@/components/dashboard/stats-cards";
 import { FriendsLeaderboard } from "@/components/dashboard/friends-leaderboard";
 import { FullGmatCard } from "@/components/dashboard/full-gmat-card";
 import { RankCard } from "@/components/dashboard/rank-card";
+import { FocusRecommendationCard } from "@/components/dashboard/focus-recommendation-card";
 
 type StreakDay = { day: string; completed: boolean; isPast: boolean };
 type FriendScore = {
@@ -29,6 +30,11 @@ type DashboardData = {
     skillScore: number | null;
     avatarUrl: string | null;
     targetScore: number | null;
+  };
+  sectionScores: {
+    verbal: number | null;
+    quantitative: number | null;
+    dataInsights: number | null;
   };
   upcomingSessions: any[];
   queueItems: any[];
@@ -139,13 +145,18 @@ export default function DashboardPage() {
             <DailyQuestCard />
           </motion.div>
 
-          {/* 2. Full GMAT practice test */}
+          {/* 2. Focus areas — proactive coaching from stuck-points API */}
           <motion.div custom={2} variants={fade} initial="hidden" animate="show">
+            <FocusRecommendationCard />
+          </motion.div>
+
+          {/* 3. Full GMAT practice test */}
+          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
             <FullGmatCard />
           </motion.div>
 
-          {/* 3. Weekly streak */}
-          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
+          {/* 4. Weekly streak */}
+          <motion.div custom={4} variants={fade} initial="hidden" animate="show">
             <QuestStreak streak={data.streak} days={data.weeklyStreakDays} />
           </motion.div>
         </div>
@@ -155,7 +166,11 @@ export default function DashboardPage() {
 
           {/* 1. Score & tier — informational, not the hero */}
           <motion.div custom={1} variants={fade} initial="hidden" animate="show">
-            <RankCard totalScore={data.totalScore} weeklyDelta={data.weeklyDelta} />
+            <RankCard
+              totalScore={data.totalScore}
+              weeklyDelta={data.weeklyDelta}
+              sectionScores={data.sectionScores}
+            />
           </motion.div>
 
           {/* 2. Target score + sessions */}

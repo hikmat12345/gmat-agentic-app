@@ -36,12 +36,17 @@ export function FriendsLeaderboard({ friends }: { friends: FriendScore[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: inviteEmail.trim() }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         toast.error(data.error || "Failed to send invite");
         return;
       }
-      toast.success("Friend request sent!");
+      // invited = true means they're not on Athena yet, an email was sent
+      if (data.invited) {
+        toast.success(data.message ?? "Invitation email sent!");
+      } else {
+        toast.success("Friend request sent!");
+      }
       setInviteEmail("");
       setShowInvite(false);
     } catch {

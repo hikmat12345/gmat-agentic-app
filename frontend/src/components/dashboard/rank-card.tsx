@@ -6,12 +6,32 @@ import Link from "next/link";
 import { getRankProgress, RANKS } from "@/lib/ranks";
 import { cn } from "@/lib/utils";
 
+type SectionScores = {
+  verbal: number | null;
+  quantitative: number | null;
+  dataInsights: number | null;
+};
+
+const SECTION_CONFIG: {
+  key: keyof SectionScores;
+  label: string;
+  abbr: string;
+  color: string;
+  trackColor: string;
+}[] = [
+  { key: "verbal", label: "Verbal", abbr: "V", color: "bg-blue-500", trackColor: "bg-blue-500/10" },
+  { key: "quantitative", label: "Quantitative", abbr: "Q", color: "bg-violet-500", trackColor: "bg-violet-500/10" },
+  { key: "dataInsights", label: "Data Insights", abbr: "DI", color: "bg-amber-500", trackColor: "bg-amber-500/10" },
+];
+
 export function RankCard({
   totalScore,
   weeklyDelta,
+  sectionScores,
 }: {
   totalScore: number;
   weeklyDelta: number;
+  sectionScores?: SectionScores | null;
 }) {
   const { current, next, pct, pointsToNext } = getRankProgress(totalScore);
 
@@ -58,6 +78,32 @@ export function RankCard({
         )}
       </div>
 
+      {/* V / Q / DI section scores */}
+      {sectionScores && (
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {SECTION_CONFIG.map(({ key, label, abbr, color, trackColor }) => {
+            const score = sectionScores[key];
+            const pct = score != null ? Math.round(((score - 60) / 30) * 100) : 0;
+            return (
+              <div key={key} className="flex flex-col gap-1" title={label}>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-muted-foreground">{abbr}</span>
+                  <span className="tabular-nums font-bold text-foreground">
+                    {score != null ? score : "—"}
+                  </span>
+                </div>
+                <div className={`h-1.5 w-full overflow-hidden rounded-full ${trackColor}`}>
+                  <div
+                    className={`h-full rounded-full ${color} transition-all duration-700`}
+                    style={{ width: score != null ? `${pct}%` : "0%" }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="mt-5">
         <div className="mb-2 flex items-center justify-between text-sm font-medium">
@@ -102,7 +148,7 @@ export function RankCard({
               className={cn(
                 "flex-1 flex flex-col items-center gap-1",
               )}
-              title={`${rank.name} — ${rank.range ?? rank.threshold}${unlocked ? " (Reached)" : ""}`}
+              title={`${rank.name} — ${rank.threshold}+${unlocked ? " (Reached)" : ""}`}
             >
               <div className={cn(
                 "h-1.5 w-full rounded-full",

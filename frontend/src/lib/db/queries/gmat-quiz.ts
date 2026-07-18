@@ -46,6 +46,10 @@ export async function saveGmatQuizSession(data: {
           is_correct: a.isCorrect,
           ...(a.difficultyLevel !== undefined && { difficulty_level: a.difficultyLevel }),
           ...(a.responseTimeMs !== undefined && { response_time_ms: a.responseTimeMs }),
+          ...(a.wrongCount !== undefined && { wrong_count: a.wrongCount }),
+          ...(a.hintUsed !== undefined && { hint_used: a.hintUsed }),
+          ...(a.tutorUsed !== undefined && { tutor_used: a.tutorUsed }),
+          ...(a.practiceCompleted !== undefined && { practice_completed: a.practiceCompleted }),
         }))
       );
     if (answersError) throw new Error(answersError.message);

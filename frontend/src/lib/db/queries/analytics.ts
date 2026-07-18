@@ -46,17 +46,17 @@ export async function getStuckPoints(userId: string): Promise<StuckPoint[]> {
   // 2. Get recent quiz answers with tracking columns (last 30 days)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: sessions } = await supabase
+  const { data: sessions } = await (supabase as any)
     .from("quiz_sessions")
     .select("id, subtopic_id")
     .eq("user_id", userId)
-    .eq("source", "sat")
+    .in("source", ["gmat", "sat", "practice"])
     .gte("created_at", thirtyDaysAgo);
 
   if (!sessions || sessions.length === 0) return [];
 
-  const sessionIds = sessions.map((s) => s.id);
-  const sessionSubtopicMap = new Map(sessions.map((s) => [s.id, s.subtopic_id]));
+  const sessionIds = (sessions as { id: string; subtopic_id: string | null }[]).map((s) => s.id);
+  const sessionSubtopicMap = new Map((sessions as { id: string; subtopic_id: string | null }[]).map((s) => [s.id, s.subtopic_id]));
 
   const { data: answers } = await (supabase as any)
     .from("quiz_answers")
@@ -250,11 +250,11 @@ export async function getEngagementSummary(userId: string): Promise<EngagementSu
     : 0;
 
   // Improvement trend: compare accuracy of first half vs second half of sessions
-  const { data: recentSessions } = await supabase
+  const { data: recentSessions } = await (supabase as any)
     .from("quiz_sessions")
     .select("id, score, total_questions, created_at")
     .eq("user_id", userId)
-    .eq("source", "sat")
+    .in("source", ["gmat", "sat", "practice"])
     .order("created_at", { ascending: true });
 
   let improvementTrend: EngagementSummary["improvementTrend"] = "stable";
@@ -263,8 +263,8 @@ export async function getEngagementSummary(userId: string): Promise<EngagementSu
     const firstHalf = recentSessions.slice(0, mid);
     const secondHalf = recentSessions.slice(mid);
 
-    const avgFirst = firstHalf.reduce((s, r) => s + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((s, r) => s + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / secondHalf.length;
+    const avgFirst = (firstHalf as { score: number; total_questions: number }[]).reduce((s, r) => s + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / firstHalf.length;
+    const avgSecond = (secondHalf as { score: number; total_questions: number }[]).reduce((s, r) => s + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / secondHalf.length;
 
     const delta = avgSecond - avgFirst;
     if (delta > 0.05) improvementTrend = "improving";

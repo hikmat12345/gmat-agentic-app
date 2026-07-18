@@ -1,5 +1,5 @@
 """
-Mentor agent — motivational SAT prep coach that knows the student's progress
+Mentor agent — motivational GMAT prep coach that knows the student's progress
 and provides personalized guidance, study plans, and encouragement.
 """
 

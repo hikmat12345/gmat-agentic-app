@@ -102,7 +102,11 @@ test.describe("Phase 10 — Full GMAT Simulation Test", () => {
       "button:has-text('Start'), button:has-text('Begin'), button:has-text('Take Test'), button:has-text('Start Test')"
     ).first();
 
-    if (await startBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    // Check if a premium gate overlay is blocking clicks
+    const gateOverlay = page.locator(".absolute.inset-0.z-10");
+    const gateVisible = await gateOverlay.isVisible({ timeout: 2000 }).catch(() => false);
+
+    if (await startBtn.isVisible({ timeout: 5000 }).catch(() => false) && !gateVisible) {
       const btnText = await startBtn.textContent();
       console.log(`✓ Found start button: "${btnText?.trim()}"`);
       await startBtn.click();
@@ -120,6 +124,8 @@ test.describe("Phase 10 — Full GMAT Simulation Test", () => {
       } else {
         console.log("ℹ Did not navigate to question page:", testUrl);
       }
+    } else if (gateVisible) {
+      console.log("ℹ Premium gate overlay is blocking /full-gmat — user is on free tier (expected)");
     } else {
       console.log("ℹ No start button visible (no tests in bank or cooldown active)");
       // Check for in-progress resume

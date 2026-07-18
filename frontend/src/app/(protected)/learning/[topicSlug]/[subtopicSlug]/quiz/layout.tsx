@@ -60,11 +60,10 @@ export default function QuizLayout({ children }: { children: React.ReactNode }) 
         problems={data.problems}
         topicName={data.topic.name}
         subtopicName={data.subtopic.name}
-        subject="math"
         basePath={`/learning/${params.topicSlug}/${params.subtopicSlug}`}
         practiceProblemsUrl={`/api/learning/${params.topicSlug}/${params.subtopicSlug}/practice-problems`}
         onSaveResults={async ({ score, totalQuestions, timeElapsedSeconds, answers, events }) => {
-          const res = await fetch("/api/sat-quiz/submit", {
+          const res = await fetch("/api/gmat-quiz/submit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

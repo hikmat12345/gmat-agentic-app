@@ -62,8 +62,8 @@ export function useMicroLesson({ topic, subtopic, metadata, streamUrl, chatStrea
   const tokenBufferRef = useRef("");
   const rafRef = useRef(0);
   const hasStartedRef = useRef(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // ── Session tracking ──────────────────────────────────────────────
@@ -399,23 +399,6 @@ export function useMicroLesson({ topic, subtopic, metadata, streamUrl, chatStrea
     [isProcessing, topic, subtopic, parseStream]
   );
 
-  const transcribeAudio = useCallback(async (blob: Blob): Promise<string> => {
-    const form = new FormData();
-    form.append("audio", blob);
-    const res = await fetch("/api/agent/speech-to-text", {
-      method: "POST",
-      body: form,
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      if (data.detail?.includes?.("quota") || data.detail?.status === "quota_exceeded") {
-        throw new Error("QUOTA_EXCEEDED");
-      }
-      throw new Error("Transcription failed");
-    }
-    const data = await res.json();
-    return data.text;
-  }, []);
 
   const playTTS = useCallback(
     async (text: string): Promise<void> => {
@@ -521,89 +504,82 @@ export function useMicroLesson({ topic, subtopic, metadata, streamUrl, chatStrea
   );
 
   const processVoiceInput = useCallback(
-    async (audioBlob: Blob) => {
+    async (transcript: string) => {
       setIsProcessing(true);
       try {
-        const transcription = await transcribeAudio(audioBlob);
-        if (!transcription.trim()) return;
-
-        const response = await streamChatForVoice(transcription);
-
+        const response = await streamChatForVoice(transcript);
         const rawText = response.split("<<<WHITEBOARD>>>")[0].trim();
         const ttsText = sanitizeForTTS(rawText);
         if (ttsText) await playTTS(ttsText);
-      } catch (err) {
-        if (err instanceof Error && err.message === "QUOTA_EXCEEDED") {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "tutor",
-              content:
-                "Voice mode is currently unavailable. Switching to text mode.",
-            },
-          ]);
-          setMode("text");
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "tutor",
-              content:
-                "I'm having trouble connecting right now. Please try again in a moment.",
-            },
-          ]);
-        }
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "tutor",
+            content: "I'm having trouble connecting right now. Please try again in a moment.",
+          },
+        ]);
       } finally {
         setIsProcessing(false);
       }
     },
-    [transcribeAudio, streamChatForVoice, playTTS]
+    [streamChatForVoice, playTTS]
   );
 
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const startRecording = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
 
-      try {
-        connectAudioStream(stream);
-      } catch {
-        // Audio analyzer is optional
-      }
-
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        stream.getTracks().forEach((t) => t.stop());
-        disconnectAudio();
-        processVoiceInput(blob);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch {
+    if (!SR) {
       setMessages((prev) => [
         ...prev,
         {
           role: "tutor",
           content:
-            "Microphone access is required for voice mode. Please allow microphone access and try again.",
+            "Voice input isn't supported in this browser. Please use Chrome or Edge, or type your question instead.",
         },
       ]);
+      return;
     }
-  }, [processVoiceInput, connectAudioStream, disconnectAudio]);
+
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => {
+      const transcript = (event.results[0][0].transcript as string).trim();
+      setIsRecording(false);
+      if (transcript) processVoiceInput(transcript);
+    };
+
+    recognition.onerror = (event: { error: string }) => {
+      setIsRecording(false);
+      if (event.error !== "aborted" && event.error !== "no-speech") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "tutor",
+            content: "Couldn't hear that clearly. Please try again.",
+          },
+        ]);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    setIsRecording(true);
+  }, [processVoiceInput]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsRecording(false);
   }, []);
 
   const toggleMode = useCallback(() => {

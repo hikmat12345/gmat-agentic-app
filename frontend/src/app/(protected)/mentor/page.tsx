@@ -337,8 +337,23 @@ function AiCoachTab() {
   const {
     messages, mode, isRecording, isProcessing, isSpeaking, amplitude,
     whiteboardSteps, isWhiteboardStreaming,
-    sendMessage, startRecording, stopRecording, toggleMode,
+    sendMessage, sendSilentMessage, startRecording, stopRecording, toggleMode,
   } = useMentorConversation();
+
+  // Fire a proactive opening message on first mount
+  const openingFiredRef = useRef(false);
+  useEffect(() => {
+    if (openingFiredRef.current || messages.length > 0) return;
+    openingFiredRef.current = true;
+    sendSilentMessage(
+      "Greet the student proactively. Look at their progress data and: " +
+      "if they have a weak area, mention it by name and offer one concrete tip; " +
+      "if everything looks strong, acknowledge it and suggest a stretch challenge; " +
+      "if they have no data yet, welcome them warmly and ask what they want to focus on. " +
+      "Keep it to 2-3 sentences max. No bullet points."
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     currentStepIndex, stepProgress, visibleStepIds, state: playerState,

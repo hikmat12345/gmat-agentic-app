@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Brain, ChevronLeft, BookOpen, ChevronRight, Check, X,
   Send, Mic, CheckCircle, Volume2, VolumeX, SkipForward, SkipBack,
-  Play, Pause,
+  Play, Pause, MessageCircle,
 } from "lucide-react";
 import { useMicroLesson } from "@/hooks/use-micro-lesson";
 import { useLessonChat } from "@/hooks/use-lesson-chat";
@@ -53,7 +53,7 @@ type MicroLessonProps = {
   existingLesson?: { lessonContent: string; whiteboardSteps: WhiteboardStep[] } | null;
   subtopicApiPath?: string;
   practiceMode?: {
-    subject?: "math" | "reading-writing";
+    subject?: "math" | "reading-writing" | "gmat";
     quizStreamUrl?: string;
   };
   tracking?: {
@@ -1238,6 +1238,25 @@ export function MicroLesson({
                 )}
               </AnimatePresence>
 
+              {/* Ask Athena button */}
+              {lessonPhase === "lesson" && !isChatting && (
+                <motion.button
+                  onClick={() => {
+                    if (!isPaused) togglePause();
+                    chatTextareaRef.current?.focus();
+                  }}
+                  className="relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-violet-300 cursor-pointer overflow-hidden"
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  title="Ask Athena a question"
+                >
+                  <motion.div className="absolute inset-0 rounded-full opacity-70" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.15), rgba(139,92,246,0.25))", backgroundSize: "200% 200%" }} animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
+                  <motion.div className="absolute inset-0 rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(139,92,246,0.3)" }} />
+                  <div className="relative flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5" /><span>Ask Athena</span>
+                  </div>
+                </motion.button>
+              )}
+
               {/* Lore button */}
               <motion.button
                 onClick={() => setWhyModalOpen(true)}
@@ -1454,7 +1473,7 @@ export function MicroLesson({
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={handleChatKeyDown}
-                      placeholder={lessonPhase === "practice" ? "Ask about this problem…" : "Type or speak…"}
+                      placeholder={lessonPhase === "practice" ? "Ask about this problem…" : isPaused ? "Ask Athena anything about this lesson…" : "Pause & ask Athena…"}
                       className="flex-1 bg-muted/60 rounded-xl text-sm outline-none placeholder:text-muted-foreground resize-none min-h-[38px] max-h-[56px] py-2.5 px-3.5 border border-transparent focus:border-athena-amber/40 transition-colors overflow-hidden"
                       rows={1}
                       disabled={isGenerating}

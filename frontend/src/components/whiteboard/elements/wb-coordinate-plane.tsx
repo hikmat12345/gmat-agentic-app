@@ -281,13 +281,13 @@ export function WbCoordinatePlane({
         y1={originY}
         x2={axisRight}
         y2={originY}
-        style={{ stroke: "var(--foreground)" }}
+        style={{ stroke: "var(--wb-ink)" }}
         strokeWidth="1.5"
       />
       {/* X axis arrow */}
       <polygon
         points={`${axisRight},${originY} ${axisRight - 8},${originY - 4} ${axisRight - 8},${originY + 4}`}
-        style={{ fill: "var(--foreground)" }}
+        style={{ fill: "var(--wb-ink)" }}
       />
 
       {/* Y axis */}
@@ -296,13 +296,13 @@ export function WbCoordinatePlane({
         y1={axisBottom}
         x2={originX}
         y2={axisTop}
-        style={{ stroke: "var(--foreground)" }}
+        style={{ stroke: "var(--wb-ink)" }}
         strokeWidth="1.5"
       />
       {/* Y axis arrow */}
       <polygon
         points={`${originX},${axisTop} ${originX - 4},${axisTop + 8} ${originX + 4},${axisTop + 8}`}
-        style={{ fill: "var(--foreground)" }}
+        style={{ fill: "var(--wb-ink)" }}
       />
 
       {/* X tick marks + labels */}
@@ -311,13 +311,13 @@ export function WbCoordinatePlane({
         const [sx] = dataToSvg(v, 0, xMin, xMax, yMin, yMax, bx, by, bw, bh);
         return (
           <g key={`xt-${v}`}>
-            <line x1={sx} y1={originY - 4} x2={sx} y2={originY + 4} style={{ stroke: "var(--foreground)" }} strokeWidth="1" />
+            <line x1={sx} y1={originY - 4} x2={sx} y2={originY + 4} style={{ stroke: "var(--wb-ink)" }} strokeWidth="1" />
             <text
               x={sx}
               y={originY + 16}
               textAnchor="middle"
               fontSize="10"
-              style={{ fill: "var(--muted-foreground)" }}
+              style={{ fill: "var(--wb-ink-muted)" }}
               fontFamily="system-ui, sans-serif"
             >
               {v}
@@ -332,13 +332,13 @@ export function WbCoordinatePlane({
         const [, sy] = dataToSvg(0, v, xMin, xMax, yMin, yMax, bx, by, bw, bh);
         return (
           <g key={`yt-${v}`}>
-            <line x1={originX - 4} y1={sy} x2={originX + 4} y2={sy} style={{ stroke: "var(--foreground)" }} strokeWidth="1" />
+            <line x1={originX - 4} y1={sy} x2={originX + 4} y2={sy} style={{ stroke: "var(--wb-ink)" }} strokeWidth="1" />
             <text
               x={originX - 10}
               y={sy + 3}
               textAnchor="end"
               fontSize="10"
-              style={{ fill: "var(--muted-foreground)" }}
+              style={{ fill: "var(--wb-ink-muted)" }}
               fontFamily="system-ui, sans-serif"
             >
               {v}
@@ -353,7 +353,7 @@ export function WbCoordinatePlane({
           x={axisRight + 12}
           y={originY + 4}
           fontSize="12"
-          style={{ fill: "var(--secondary-foreground)" }}
+          style={{ fill: "var(--wb-ink)" }}
           fontFamily="system-ui, sans-serif"
         >
           {action.axisLabels.x}
@@ -364,7 +364,7 @@ export function WbCoordinatePlane({
           x={originX + 8}
           y={axisTop - 4}
           fontSize="12"
-          style={{ fill: "var(--secondary-foreground)" }}
+          style={{ fill: "var(--wb-ink)" }}
           fontFamily="system-ui, sans-serif"
         >
           {action.axisLabels.y}
@@ -437,7 +437,7 @@ export function WbCoordinatePlane({
                     x={px + r + 4}
                     y={py - r - 2}
                     fontSize="11"
-                    style={{ fill: "var(--secondary-foreground)" }}
+                    style={{ fill: "var(--wb-ink)" }}
                     fontFamily="system-ui, sans-serif"
                   >
                     {elem.label}
@@ -458,7 +458,7 @@ export function WbCoordinatePlane({
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  style={{ stroke: elem.style?.strokeColor ?? "var(--secondary-foreground)" }}
+                  style={{ stroke: elem.style?.strokeColor ?? "var(--wb-ink)" }}
                   strokeWidth={elem.style?.strokeWidth ?? 1.5}
                   strokeDasharray={elem.style?.dashed ? "6 4" : (isAnimating ? len : undefined)}
                   strokeDashoffset={isAnimating ? len * (1 - progress) : 0}
@@ -468,7 +468,7 @@ export function WbCoordinatePlane({
                     x={(x1 + x2) / 2 + 6}
                     y={(y1 + y2) / 2 - 6}
                     fontSize="11"
-                    style={{ fill: "var(--secondary-foreground)" }}
+                    style={{ fill: "var(--wb-ink)" }}
                     fontFamily="system-ui, sans-serif"
                   >
                     {elem.label}
@@ -488,7 +488,7 @@ export function WbCoordinatePlane({
                   y1={vTop}
                   x2={vx}
                   y2={vBottom}
-                  style={{ stroke: elem.style?.strokeColor ?? "var(--muted-foreground)" }}
+                  style={{ stroke: elem.style?.strokeColor ?? "var(--wb-ink-muted)" }}
                   strokeWidth={elem.style?.strokeWidth ?? 1}
                   strokeDasharray={elem.style?.dashed ? "6 4" : "4 2"}
                 />
@@ -497,7 +497,7 @@ export function WbCoordinatePlane({
                     x={vx + 4}
                     y={vTop + 12}
                     fontSize="10"
-                    style={{ fill: "var(--muted-foreground)" }}
+                    style={{ fill: "var(--wb-ink-muted)" }}
                     fontFamily="system-ui, sans-serif"
                   >
                     {elem.label}
@@ -517,7 +517,7 @@ export function WbCoordinatePlane({
                   y1={hy}
                   x2={hRight}
                   y2={hy}
-                  style={{ stroke: elem.style?.strokeColor ?? "var(--muted-foreground)" }}
+                  style={{ stroke: elem.style?.strokeColor ?? "var(--wb-ink-muted)" }}
                   strokeWidth={elem.style?.strokeWidth ?? 1}
                   strokeDasharray={elem.style?.dashed ? "6 4" : "4 2"}
                 />
@@ -527,7 +527,7 @@ export function WbCoordinatePlane({
                     y={hy - 4}
                     textAnchor="end"
                     fontSize="10"
-                    style={{ fill: "var(--muted-foreground)" }}
+                    style={{ fill: "var(--wb-ink-muted)" }}
                     fontFamily="system-ui, sans-serif"
                   >
                     {elem.label}

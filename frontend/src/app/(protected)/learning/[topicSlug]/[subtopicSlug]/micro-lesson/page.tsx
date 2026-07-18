@@ -5,56 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { MicroLesson } from "@/components/learning/micro-lesson";
-import type { Problem } from "@/components/quiz/types";
 import { WhiteboardSkeleton } from "@/components/whiteboard/whiteboard-skeleton";
 import { GenerationProgress } from "@/components/lessons/generation-progress";
 import { FeatureGate } from "@/components/subscription/feature-gate";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useTopicIsFree } from "@/hooks/use-topic-is-free";
-
-const HARDCODED_PROBLEMS: Problem[] = [
-  {
-    id: "hardcoded-linear-eq-1",
-    orderIndex: 0,
-    difficulty: "medium",
-    questionText:
-      "The equation y = -2x - 1 is graphed in the xy-plane. What is the slope and y-intercept of the line?",
-    options: [
-      "Slope: -2, y-intercept: -1",
-      "Slope: -1, y-intercept: -2",
-      "Slope: 2, y-intercept: -1",
-      "Slope: -2, y-intercept: 1",
-    ],
-    correctOption: 0,
-    explanation:
-      "In the slope-intercept form y = mx + b, the coefficient of x is the slope (m = -2) and the constant term is the y-intercept (b = -1).",
-    solutionSteps: [
-      { step: 1, instruction: "Identify the slope-intercept form", math: "y = mx + b" },
-      { step: 2, instruction: "Read off the slope", math: "m = -2" },
-      { step: 3, instruction: "Read off the y-intercept", math: "b = -1" },
-    ],
-    hint: "Compare the equation to the slope-intercept form y = mx + b.",
-    timeRecommendationSeconds: 30,
-  },
-  {
-    id: "hardcoded-linear-eq-2",
-    orderIndex: 1,
-    difficulty: "medium",
-    questionText:
-      "The equation y = 5x + 5 is graphed in the xy-plane. At what point does the line cross the x-axis?",
-    options: ["(-1, 0)", "(0, 5)", "(1, 0)", "(5, 0)"],
-    correctOption: 0,
-    explanation:
-      "The line crosses the x-axis when y = 0. Setting 0 = 5x + 5 and solving gives x = -1, so the x-intercept is (-1, 0).",
-    solutionSteps: [
-      { step: 1, instruction: "Set y = 0 to find the x-intercept", math: "0 = 5x + 5" },
-      { step: 2, instruction: "Subtract 5 from both sides", math: "-5 = 5x" },
-      { step: 3, instruction: "Divide both sides by 5", math: "x = -1" },
-    ],
-    hint: "The x-axis is where y = 0. Plug that in and solve for x.",
-    timeRecommendationSeconds: 45,
-  },
-];
 
 export default function MicroLessonPage() {
   const params = useParams<{ topicSlug: string; subtopicSlug: string }>();
@@ -159,8 +114,7 @@ export default function MicroLessonPage() {
       }}
       existingLesson={existingLesson}
       subtopicApiPath={`/api/learning/${topicSlug}/${subtopicSlug}/micro-lesson`}
-      practiceMode={{ subject: "math" }}
-      practiceProblems={subtopicSlug === "linear-equations-two-variables" ? HARDCODED_PROBLEMS : undefined}
+      practiceMode={{ subject: "gmat" }}
       onClose={() => router.push(`/learning/${topicSlug}/${subtopicSlug}`)}
       tracking={storedLesson?.id ? { microLessonId: storedLesson.id, subtopicId: storedLesson.subtopicId ?? data.subtopic.id } : undefined}
     />

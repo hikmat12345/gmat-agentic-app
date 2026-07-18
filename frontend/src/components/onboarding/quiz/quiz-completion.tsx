@@ -5,23 +5,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, Target, ArrowRight } from "lucide-react";
 
+type GmatScores = { verbal: number; quantitative: number; dataInsights: number; composite: number };
+
 export function QuizCompletion({
   skillScore,
   totalQuestions,
   correctCount,
+  gmatScores,
   onContinue,
 }: {
   skillScore: number;
   totalQuestions: number;
   correctCount: number;
+  gmatScores?: GmatScores;
   onContinue: () => void;
 }) {
+  const composite = gmatScores?.composite ?? null;
   const scoreColor =
-    skillScore >= 70
-      ? "text-athena-success"
-      : skillScore >= 40
-        ? "text-athena-amber"
+    (composite ?? skillScore) >= 500
+      ? "text-emerald-500"
+      : (composite ?? skillScore) >= 400
+        ? "text-amber-500"
         : "text-destructive";
+
+  const SECTION_CONFIG = [
+    { label: "Verbal", key: "verbal" as const, color: "bg-blue-500" },
+    { label: "Quant", key: "quantitative" as const, color: "bg-violet-500" },
+    { label: "Data Insights", key: "dataInsights" as const, color: "bg-amber-500" },
+  ];
 
   return (
     <motion.div
@@ -37,38 +48,58 @@ export function QuizCompletion({
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="mx-auto mb-2"
           >
-            <Trophy className="h-12 w-12 text-athena-amber" />
+            <Trophy className="h-12 w-12 text-amber-500" />
           </motion.div>
-          <CardTitle className="text-2xl">Quiz Complete!</CardTitle>
+          <CardTitle className="text-2xl">Diagnostic Complete!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Composite score */}
           <div>
             <p className="text-sm text-muted-foreground mb-1">
-              Your diagnostic score
+              {composite != null ? "GMAT Composite Estimate" : "Your diagnostic score"}
             </p>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className={`text-5xl font-bold ${scoreColor}`}
+              className={`text-5xl font-bold tabular-nums ${scoreColor}`}
             >
-              {skillScore}
+              {composite ?? skillScore}
             </motion.p>
+            {composite != null && (
+              <p className="text-xs text-muted-foreground mt-1">205–805 scale</p>
+            )}
           </div>
+
+          {/* V/Q/DI breakdown */}
+          {gmatScores && (
+            <div className="grid grid-cols-3 gap-3">
+              {SECTION_CONFIG.map(({ label, key, color }) => (
+                <div key={key} className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 p-3">
+                  <div className={`h-1.5 w-full rounded-full bg-muted overflow-hidden`}>
+                    <div
+                      className={`h-full rounded-full ${color}`}
+                      style={{ width: `${((gmatScores[key] - 60) / 30) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold tabular-nums">{gmatScores[key]}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Target className="h-4 w-4" />
-              <span>
-                {correctCount}/{totalQuestions} correct
-              </span>
+              <span>{correctCount}/{totalQuestions} correct</span>
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground">
-            {skillScore >= 70
+            {(composite ?? 0) >= 550
               ? "Strong GMAT foundation! Let's build a plan to push your score even higher."
-              : skillScore >= 40
+              : (composite ?? 0) >= 400
                 ? "Good start! Your personalized GMAT lessons will help fill the gaps."
                 : "No worries — we've queued targeted GMAT lessons to get you up to speed."}
           </p>

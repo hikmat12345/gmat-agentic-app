@@ -21,7 +21,7 @@ function toSvg(p: { x: number; y: number }, bx: number, by: number, bw: number, 
 }
 
 export function WbShape({ shape, points, x, y, width, height, style, progress, isAnimating }: WbShapeProps) {
-  const strokeColor = style?.strokeColor ?? "var(--secondary-foreground)";
+  const strokeColor = style?.strokeColor ?? "var(--wb-ink)";
   const strokeWidth = style?.strokeWidth ?? 2;
   const fillColor = style?.fillColor ?? "none";
   const dashed = style?.dashed ? "6 4" : undefined;

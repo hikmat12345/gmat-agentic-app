@@ -21,60 +21,138 @@ APP_URL = os.environ.get("APP_URL", "https://athena-pov.com")
 EMAIL_FROM = os.environ.get("EMAIL_FROM", "Athena <noreply@athena.com>")
 
 
-def _welcome_html(display_name: str) -> tuple[str, str]:
-    subject = "Welcome to Athena!"
-    html = f"""\
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-    <tr>
-      <td style="padding:40px 32px;text-align:center;">
-        <h1 style="margin:0 0 16px;font-size:24px;color:#111827;">Welcome to Athena, {display_name}!</h1>
-        <p style="margin:0 0 24px;font-size:16px;color:#4b5563;line-height:1.6;">
-          You're all set to start your GMAT prep journey. Athena uses AI-powered lessons, quizzes, and tutoring to help you reach your target GMAT score.
-        </p>
-        <a href="{APP_URL}/dashboard" style="display:inline-block;padding:12px 32px;background:#6366f1;color:#ffffff;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;">
-          Go to Dashboard
-        </a>
-        <p style="margin:24px 0 0;font-size:14px;color:#9ca3af;">
-          If you have any questions, just open the Mentor chat in the app.
-        </p>
-      </td>
-    </tr>
+def _shell(header_html: str, body_html: str, footer_note: str = "") -> str:
+    year = datetime.now(timezone.utc).year
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background:#f1f3f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f3f9;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;">
+
+        <!-- HEADER BAR -->
+        <tr>
+          <td style="background:#0d0f1a;border-radius:16px 16px 0 0;padding:28px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td><span style="font-size:22px;font-weight:800;color:#ffffff;">⚡ Athena</span>
+                    <span style="margin-left:6px;font-size:12px;font-weight:600;color:#f5a623;text-transform:uppercase;letter-spacing:1px;">GMAT Coach</span></td>
+                <td align="right"><span style="font-size:11px;color:#9ca3af;">GMAT COACH Prep</span></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr><td style="background:linear-gradient(90deg,#f5a623 0%,#d4891a 100%);height:3px;"></td></tr>
+
+        <!-- HERO -->
+        {header_html}
+
+        <!-- BODY -->
+        <tr><td style="background:#ffffff;padding:0 36px 36px;">{body_html}</td></tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="background:#1a1d2e;border-radius:0 0 16px 16px;padding:20px 36px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td><p style="margin:0;font-size:11px;color:#9ca3af;">{footer_note or "You&#39;re receiving this because you have an Athena account."} &middot; <a href="{APP_URL}" style="color:#f5a623;text-decoration:none;">athena-pov.com</a></p></td>
+                <td align="right"><p style="margin:0;font-size:11px;color:#9ca3af;">&copy; {year} Athena</p></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
   </table>
 </body>
 </html>"""
-    return subject, html
+
+
+def _welcome_html(display_name: str) -> tuple[str, str]:
+    subject = f"Welcome to Athena, {display_name}! Your GMAT prep starts now"
+    hero = f"""
+    <tr>
+      <td style="background:#0d0f1a;padding:36px 36px 40px;text-align:center;">
+        <p style="margin:0 0 8px;font-size:42px;">🎯</p>
+        <h1 style="margin:0 0 12px;font-size:28px;font-weight:800;color:#ffffff;line-height:1.2;">
+          Welcome aboard,<br><span style="color:#f5a623;">{display_name}!</span>
+        </h1>
+        <p style="margin:0;font-size:15px;color:#9ca3af;">Your GMAT journey starts now.</p>
+      </td>
+    </tr>"""
+    body = f"""
+    <p style="margin:28px 0 20px;font-size:16px;font-weight:600;color:#111827;">Here&#39;s what Athena gives you:</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr><td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:22px;width:40px;vertical-align:top;padding-top:2px;">🧠</td>
+          <td style="padding-left:8px;"><p style="margin:0;font-size:14px;font-weight:700;color:#111827;">Adaptive AI Tutor</p><p style="margin:2px 0 0;font-size:13px;color:#6b7280;">Socratic hints that guide you — never just gives the answer.</p></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:22px;width:40px;vertical-align:top;padding-top:2px;">📊</td>
+          <td style="padding-left:8px;"><p style="margin:0;font-size:14px;font-weight:700;color:#111827;">GMAT Scoring (205–805)</p><p style="margin:2px 0 0;font-size:13px;color:#6b7280;">Real-time V / Q / DI scores that update after every session.</p></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:22px;width:40px;vertical-align:top;padding-top:2px;">🎯</td>
+          <td style="padding-left:8px;"><p style="margin:0;font-size:14px;font-weight:700;color:#111827;">Daily Quest</p><p style="margin:2px 0 0;font-size:13px;color:#6b7280;">20 personalized questions targeting your exact weak spots.</p></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:10px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:22px;width:40px;vertical-align:top;padding-top:2px;">📅</td>
+          <td style="padding-left:8px;"><p style="margin:0;font-size:14px;font-weight:700;color:#111827;">Smart Scheduling</p><p style="margin:2px 0 0;font-size:13px;color:#6b7280;">Study at your chosen time — Athena reminds you automatically.</p></td>
+        </tr></table>
+      </td></tr>
+    </table>
+    <p style="text-align:center;margin:32px 0 0;">
+      <a href="{APP_URL}/dashboard" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(99,102,241,0.35);">Go to My Dashboard &rarr;</a>
+    </p>
+    <p style="text-align:center;margin:16px 0 0;font-size:13px;color:#9ca3af;">
+      Start with the onboarding quiz &mdash; it sets your baseline score in 15 minutes.
+    </p>"""
+    return subject, _shell(hero, body, "You signed up for Athena GMAT Coach.")
 
 
 def _reminder_html(display_name: str, start_time: str) -> tuple[str, str]:
-    subject = f"Your study session starts at {start_time}"
-    html = f"""\
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+    subject = f"⏰ Study time, {display_name} — your GMAT session starts at {start_time}"
+    hero = f"""
     <tr>
-      <td style="padding:40px 32px;text-align:center;">
-        <h1 style="margin:0 0 16px;font-size:24px;color:#111827;">Hey {display_name}!</h1>
-        <p style="margin:0 0 24px;font-size:16px;color:#4b5563;line-height:1.6;">
-          Your study session is coming up at <strong>{start_time}</strong>. Jump in and keep your streak going!
-        </p>
-        <a href="{APP_URL}/dashboard" style="display:inline-block;padding:12px 32px;background:#6366f1;color:#ffffff;text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;">
-          Start Session
-        </a>
-        <p style="margin:24px 0 0;font-size:14px;color:#9ca3af;">
-          Consistency is the key to GMAT success. You've got this!
+      <td style="background:#0d0f1a;padding:36px 36px 40px;text-align:center;">
+        <p style="margin:0 0 8px;font-size:42px;">⏰</p>
+        <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#ffffff;line-height:1.2;">
+          Study time,&nbsp;<span style="color:#f5a623;">{display_name}!</span>
+        </h1>
+        <p style="margin:0;font-size:16px;color:#9ca3af;">
+          Your session starts at <strong style="color:#ffffff;">{start_time}</strong>
         </p>
       </td>
-    </tr>
-  </table>
-</body>
-</html>"""
-    return subject, html
+    </tr>"""
+    body = f"""
+    <p style="font-size:15px;color:#374151;line-height:1.7;margin:28px 0;">
+      Consistency is what separates GMAT achievers from the rest. Your 20-question daily quest is ready &mdash;
+      each question calibrated to your exact skill level across Verbal, Quantitative, and Data Insights.
+    </p>
+    <div style="background:#f1f3f9;border-left:4px solid #f5a623;border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:28px;">
+      <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;">
+        🔥 <strong>Keep your streak alive.</strong> Missing a session resets your daily momentum &mdash; even 20 minutes today makes a measurable difference.
+      </p>
+    </div>
+    <p style="text-align:center;margin:0;">
+      <a href="{APP_URL}/quest" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:#ffffff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(99,102,241,0.35);">Start My Session &rarr;</a>
+    </p>
+    <p style="text-align:center;margin:16px 0 0;font-size:13px;color:#9ca3af;">
+      Takes only 20&ndash;30 minutes. Your score improves every session.
+    </p>"""
+    return subject, _shell(hero, body, "You&#39;re receiving this because you have a study reminder set.")
 
 
 def _get_session_datetime(date_str: str, time_str: str, tz_name: str) -> datetime | None:

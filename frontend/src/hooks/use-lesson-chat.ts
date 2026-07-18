@@ -65,16 +65,13 @@ export function useLessonChat({
   const messagesRef = useRef<ChatMessage[]>([]);
   messagesRef.current = chatMessages;
   const nextStepIdRef = useRef(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatStepsRef = useRef<WhiteboardStep[]>([]);
   chatStepsRef.current = chatWhiteboardSteps;
-  const silenceCleanupRef = useRef<(() => void) | null>(null);
 
   const {
     amplitude,
-    connectStream: connectAudioStream,
     connectElement: connectAudioElement,
     disconnect: disconnectAudio,
   } = useAudioAnalyzer();
@@ -390,91 +387,59 @@ export function useLessonChat({
     }
   }, [chatStreamDone, isChatNarrating, chatNarrationIndex, chatWhiteboardSteps]);
 
-  // ── Voice recording ──────────────────────────────────────────────
+  // ── Voice recording (browser SpeechRecognition) ──────────────────
 
   const stopRecording = useCallback(() => {
-    if (silenceCleanupRef.current) { silenceCleanupRef.current(); silenceCleanupRef.current = null; }
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsRecording(false);
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(() => {
     if (isRecording) { stopRecording(); return; }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      try { connectAudioStream(stream); } catch { /* optional */ }
 
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      chunksRef.current = [];
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!SR) {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "tutor", content: "Voice input isn't supported in this browser. Please type your question." },
+      ]);
+      return;
+    }
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
+    const recognition = new SR();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
 
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        disconnectAudio();
-        if (silenceCleanupRef.current) { silenceCleanupRef.current(); silenceCleanupRef.current = null; }
+    recognition.onresult = (event: any) => {
+      const transcript = (event.results[0][0].transcript as string).trim();
+      setIsRecording(false);
+      recognitionRef.current = null;
+      if (transcript) sendChat(transcript);
+    };
 
-        setIsProcessing(true);
-        try {
-          const form = new FormData();
-          form.append("audio", new Blob(chunksRef.current, { type: "audio/webm" }));
-          const res = await fetch("/api/agent/speech-to-text", { method: "POST", body: form });
-          if (!res.ok) throw new Error("Transcription failed");
-          const { text } = await res.json();
-          if (text?.trim()) await sendChat(text.trim());
-        } catch {
-          setChatMessages((prev) => [
-            ...prev,
-            { role: "tutor", content: "I couldn't hear that. Please try again." },
-          ]);
-        } finally {
-          setIsProcessing(false);
-        }
-      };
+    recognition.onerror = (event: any) => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+      if (event.error !== "aborted" && event.error !== "no-speech") {
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "tutor", content: "Couldn't hear that clearly. Please try again." },
+        ]);
+      }
+    };
 
-      recorder.start();
-      setIsRecording(true);
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
 
-      // Silence detection — auto-stop after 3 s of silence
-      try {
-        const audioCtx = new AudioContext();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        let silenceTimer: ReturnType<typeof setTimeout> | null = null;
-
-        const interval = setInterval(() => {
-          analyser.getByteFrequencyData(dataArray);
-          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-          if (avg < 8) {
-            if (!silenceTimer) {
-              silenceTimer = setTimeout(() => {
-                if (mediaRecorderRef.current?.state === "recording") {
-                  mediaRecorderRef.current.stop();
-                  setIsRecording(false);
-                }
-              }, 3000);
-            }
-          } else {
-            if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-          }
-        }, 150);
-
-        silenceCleanupRef.current = () => {
-          clearInterval(interval);
-          if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-          audioCtx.close().catch(() => {});
-        };
-      } catch { /* AudioContext not available */ }
-    } catch { /* Microphone permission denied — fail silently */ }
-  }, [isRecording, stopRecording, sendChat, connectAudioStream, disconnectAudio]);
+    recognition.start();
+    setIsRecording(true);
+  }, [isRecording, stopRecording, sendChat]);
 
   const toggleMode = useCallback(() => {
     if (audioRef.current) {

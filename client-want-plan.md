@@ -48,7 +48,7 @@ The following features are **live and functional** in the current codebase. Thes
 
 ## 2. Product Vision (GMAT-Mapped)
 
-The client brief describes an AI-powered GMAT preparation platform with these pillars:
+The client brief describes an GMAT COACH GMAT preparation platform with these pillars:
 
 ### 2.1 Core Pillars
 | Pillar | Description |

@@ -30,7 +30,7 @@ export function WbMath({ latex, x, y, width, height, style, progress, isAnimatin
   const [contentHeight, setContentHeight] = useState(height);
   const [scale, setScale] = useState(1);
   const fontSize = FONT_SIZES[style?.fontSize ?? "md"];
-  const color = adaptWbColor(style?.color ?? "var(--foreground)", isDark);
+  const color = adaptWbColor(style?.color ?? "var(--wb-ink)", isDark);
   const effectiveWidth = Math.max(width, 200);
 
   useEffect(() => {

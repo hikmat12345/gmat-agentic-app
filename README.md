@@ -1,6 +1,6 @@
 # Athena — SAT Math Prep Platform
 
-AI-powered SAT Math preparation that combines adaptive tutoring with structured accountability. Built on the thesis that **sustained behavioral momentum + precise conceptual feedback** drives student outcomes.
+GMAT COACH SAT Math preparation that combines adaptive tutoring with structured accountability. Built on the thesis that **sustained behavioral momentum + precise conceptual feedback** drives student outcomes.
 
 ## Tech Stack
 

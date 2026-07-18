@@ -191,7 +191,7 @@ function BillingContent() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Upgrade to Athena Premium</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Unlock AI-powered GMAT coaching, daily quests, and full practice tests.
+          Unlock GMAT COACH GMAT coaching, daily quests, and full practice tests.
         </p>
       </div>
 

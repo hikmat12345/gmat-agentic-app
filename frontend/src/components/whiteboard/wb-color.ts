@@ -40,9 +40,13 @@ function hexToHsl(hex: string): [number, number, number] | null {
   return [h * 360, s * 100, l * 100];
 }
 
-/** Returns a CSS color string that's readable on both light and dark canvases. */
-export function adaptWbColor(color: string, isDark: boolean): string {
-  if (!isDark || !color || color.startsWith("var(")) return color;
+/**
+ * Returns a CSS color string that's readable on the whiteboard canvas.
+ * The canvas is always dark (#050911) regardless of app theme, so dark
+ * hex colors must be brightened in both light and dark mode.
+ */
+export function adaptWbColor(color: string, _isDark: boolean): string {
+  if (!color || color.startsWith("var(")) return color;
 
   const hsl = hexToHsl(color);
   if (!hsl) return color;

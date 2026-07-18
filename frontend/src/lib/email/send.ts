@@ -4,6 +4,7 @@ export async function sendEmail(params: {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 }) {
   if (!resend) {
     console.warn("RESEND_API_KEY not set — skipping email");
@@ -11,8 +12,9 @@ export async function sendEmail(params: {
   }
 
   return resend.emails.send({
-    from: process.env.EMAIL_FROM ?? "Athena <noreply@athena.com>",
+    from: process.env.EMAIL_FROM ?? "Athena <onboarding@resend.dev>",
     to: params.to,
+    replyTo: params.replyTo,
     subject: params.subject,
     html: params.html,
   });

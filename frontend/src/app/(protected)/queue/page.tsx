@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Target, CheckCircle2 } from "lucide-react";
+import { BarChart3, Target, CheckCircle2, ArrowRight, BookOpen, Zap } from "lucide-react";
+import Link from "next/link";
 import { SectionScores } from "@/components/progress/section-scores";
 import { SatSkills } from "@/components/progress/sat-skills";
 import { CompositeScore } from "@/components/progress/composite-score";
@@ -249,7 +250,85 @@ export default function ProgressPage() {
             currentScore={compositeScore}
           />
         </motion.div>
+
+        {/* Recommended Actions */}
+        <RecommendedActions />
       </motion.div>
     </div>
+  );
+}
+
+// ── Recommended Actions (inline, uses stuck-points) ──────────────────────────
+
+type StuckPoint = {
+  subtopicId: string;
+  subtopicName: string;
+  subtopicSlug: string;
+  topicName: string;
+  topicSlug: string;
+  stuckScore: number;
+  metrics: { accuracy: number; totalAttempts: number; microLessonCompleted: boolean };
+  recommendation: "micro-lesson" | "practice" | "review-quiz";
+};
+
+const ACTION_CONFIG = {
+  "micro-lesson": { label: "Watch lesson", Icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
+  "practice":     { label: "Practice now", Icon: Zap,      color: "text-amber-500", bg: "bg-amber-500/10" },
+  "review-quiz":  { label: "Review quiz",  Icon: ArrowRight, color: "text-violet-500", bg: "bg-violet-500/10" },
+} as const;
+
+function RecommendedActions() {
+  const { data } = useQuery<{ stuckPoints: StuckPoint[]; summary: { totalSubtopicsAttempted: number; stuckCount: number } }>({
+    queryKey: ["analytics", "stuck-points"],
+    queryFn: () =>
+      fetch("/api/analytics/stuck-points").then((r) => {
+        if (!r.ok) throw new Error("Failed");
+        return r.json();
+      }),
+    staleTime: 5 * 60_000,
+  });
+
+  if (!data || data.summary.totalSubtopicsAttempted === 0 || data.stuckPoints.length === 0) return null;
+
+  const actions = data.stuckPoints.slice(0, 3);
+
+  return (
+    <motion.div variants={staggerItem} className="mt-6">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Recommended Actions
+      </h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {actions.map((sp) => {
+          const cfg = ACTION_CONFIG[sp.recommendation];
+          const href =
+            sp.recommendation === "micro-lesson"
+              ? `/learning/${sp.topicSlug}/${sp.subtopicSlug}/micro-lesson`
+              : `/learning/${sp.topicSlug}/${sp.subtopicSlug}/quiz`;
+          return (
+            <Link
+              key={sp.subtopicId}
+              href={href}
+              className="group flex items-start gap-3 rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/30 hover:bg-muted/20"
+            >
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${cfg.bg}`}>
+                <cfg.Icon className={`h-4 w-4 ${cfg.color}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-semibold">{sp.subtopicName}</p>
+                <p className="text-[11px] text-muted-foreground">{sp.topicName}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {sp.metrics.accuracy}% accuracy
+                  </span>
+                  <span className={`flex items-center gap-0.5 text-xs font-semibold ${cfg.color}`}>
+                    {cfg.label} <ArrowRight className="h-3 w-3" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </motion.div>
   );
 }

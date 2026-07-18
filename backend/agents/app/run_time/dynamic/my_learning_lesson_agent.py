@@ -1,6 +1,6 @@
 """
 My Learning Lesson Agent — a general-purpose teacher for any topic.
-Not restricted to SAT Math.
+Not restricted to any specific exam format.
 """
 
 from agno.agent import Agent

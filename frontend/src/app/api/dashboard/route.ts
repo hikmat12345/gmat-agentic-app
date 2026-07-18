@@ -23,6 +23,11 @@ export async function GET() {
       avatarUrl: user.avatarUrl,
       targetScore: user.targetScore ?? null,
     },
+    sectionScores: {
+      verbal: user.currentVerbal ?? null,
+      quantitative: user.currentQuantitative ?? null,
+      dataInsights: user.currentDataInsights ?? null,
+    },
     ...data,
   });
 }

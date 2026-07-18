@@ -1,5 +1,5 @@
 """
-Subtopic Generator Agent — produces rich subtopic metadata for SAT content.
+Subtopic Generator Agent — produces rich subtopic metadata for GMAT content.
 """
 
 import json
@@ -7,30 +7,34 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 
 SUBJECT_LABELS = {
-    "math": "SAT Math",
-    "reading-writing": "SAT Reading & Writing",
+    "math": "GMAT Quantitative Reasoning",
+    "reading-writing": "GMAT Verbal Reasoning",
+    "gmat": "GMAT",
+    "verbal": "GMAT Verbal Reasoning",
+    "quantitative": "GMAT Quantitative Reasoning",
+    "data_insights": "GMAT Data Insights",
 }
 
 subtopic_agent = Agent(
-    name="SAT Subtopic Generator",
+    name="GMAT Subtopic Generator",
     model=Claude(id="claude-sonnet-4-6"),
-    description="You generate comprehensive SAT subtopic metadata.",
+    description="You generate comprehensive GMAT subtopic metadata.",
     instructions=[
-        "You are an expert SAT curriculum designer.",
+        "You are an expert GMAT curriculum designer.",
         "Given a subtopic name, its parent topic context, and the subject area, generate rich metadata.",
         "Return ONLY valid JSON with these exact keys:",
-        "- description: string (2-3 sentences describing the subtopic)",
+        "- description: string (2-3 sentences describing the subtopic in the context of the GMAT)",
         "- learningObjectives: string[] (3-5 specific learning objectives)",
-        "- keyFormulas: { latex: string, description: string }[] (key formulas/rules — for Math use LaTeX notation, for Reading & Writing use grammar rules or strategies)",
+        "- keyFormulas: { latex: string, description: string }[] (key formulas/rules — for Quant use LaTeX notation, for Verbal use logical reasoning rules or reading strategies)",
         "- commonMistakes: { mistake: string, correction: string, why: string }[] (3-5 common student mistakes)",
         "- tipsAndTricks: string[] (3-5 specific strategies for this subtopic)",
         "- difficulty: string ('easy' | 'medium' | 'hard')",
         "- estimatedMinutes: number (study time for this subtopic)",
         "- prerequisiteSubtopicSlugs: string[] (slugs of prerequisite subtopics, can be empty)",
         "- conceptualOverview: { definition: string, realWorldExample: string, satContext: string, visualDescription: string }",
-        "For Math: use LaTeX notation like \\frac{a}{b}, x^2, \\sqrt{x}, etc. in keyFormulas.",
-        "For Reading & Writing: keyFormulas should contain key grammar rules, rhetorical strategies, or reading techniques (use plain text, not LaTeX).",
-        "Be specific to the actual SAT exam content and format.",
+        "For Quantitative: use LaTeX notation like \\frac{a}{b}, x^2, \\sqrt{x}, etc. in keyFormulas.",
+        "For Verbal / Data Insights: keyFormulas should contain key reasoning rules, argument structures, or reading techniques (use plain text, not LaTeX).",
+        "Be specific to the actual GMAT Focus Edition exam content and format.",
         "Never use em-dashes (—) in any text fields.",
         "Emojis are allowed but use them sparingly; do not overuse them.",
         "Return ONLY the JSON object, no markdown code fences or extra text.",
@@ -48,7 +52,7 @@ async def generate_subtopic(
     subject: str = "math",
 ) -> dict:
     """Generate rich subtopic metadata via LLM."""
-    subject_label = SUBJECT_LABELS.get(subject, "SAT Math")
+    subject_label = SUBJECT_LABELS.get(subject, "GMAT")
     prompt = (
         f"Subject: {subject_label}\n"
         f"Parent Topic: {topic_name}\n"

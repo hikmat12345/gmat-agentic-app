@@ -1,6 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { getUserByClerkId } from "@/lib/db/queries/users";
-import { supabase } from "@/lib/supabase/client";
+import { getAdminClient } from "@/lib/supabase/server";
+import { sendEmail } from "@/lib/email/send";
+import { friendInviteHtml } from "@/lib/email/templates";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -14,20 +16,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const clerk = await currentUser();
+  const inviterName =
+    clerk?.fullName ?? clerk?.firstName ?? user.displayName ?? "A friend";
+  const inviterScore = user.currentComposite ?? 0;
+
   const { email } = await req.json();
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
   }
 
-  const { data: friendUser } = await supabase
+  // Use admin client so RLS doesn't block reading other users' emails
+  const admin = getAdminClient();
+
+  const { data: friendUser } = await admin
     .from("users")
-    .select("id")
+    .select("id, email, display_name")
     .eq("email", email)
     .limit(1)
     .maybeSingle();
 
+  // Friend not on Athena yet — send invitation email
   if (!friendUser) {
-    return NextResponse.json({ error: "User not found with that email" }, { status: 404 });
+    const { subject, html } = friendInviteHtml({ inviterName, inviterScore });
+    const result = await sendEmail({ to: email, subject, html }).catch((err) => {
+      console.error("[friends/invite] email send failed:", err);
+      return null;
+    });
+
+    if (!result) {
+      console.error("[friends/invite] Could not send invite to:", email);
+      return NextResponse.json(
+        { error: "Could not send invitation email. Check RESEND_API_KEY is set and restart the server." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      invited: true,
+      message: "Invitation sent! They'll get an email to join Athena.",
+    });
   }
 
   if (friendUser.id === user.id) {
@@ -35,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Check if friendship already exists
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from("friendships")
     .select("id")
     .eq("user_id", user.id)
@@ -44,10 +72,10 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (existing) {
-    return NextResponse.json({ error: "Friend request already exists" }, { status: 409 });
+    return NextResponse.json({ error: "Friend already added" }, { status: 409 });
   }
 
-  const { data: friendship } = await supabase
+  const { data: friendship } = await admin
     .from("friendships")
     .insert({
       user_id: user.id,
@@ -56,6 +84,12 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single();
+
+  // Notify the friend that they were added
+  if (friendUser.email) {
+    const { subject, html } = friendInviteHtml({ inviterName, inviterScore });
+    sendEmail({ to: friendUser.email, subject, html }).catch(console.error);
+  }
 
   return NextResponse.json({ friendship });
 }

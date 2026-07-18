@@ -1,6 +1,6 @@
 """
-Problem Generator Agent — produces SAT problems with full solutions.
-Generates in small batches (5) with retry and JSON repair for robustness.
+Problem Generator Agent — produces GMAT problems with full solutions.
+Generates in small batches with retry and JSON repair for robustness.
 """
 
 import json
@@ -12,17 +12,21 @@ BATCH_SIZE = 10  # 10 per batch — large enough to be fast, small enough to avo
 MAX_RETRIES = 3
 
 SUBJECT_LABELS = {
-    "math": "SAT Math",
-    "reading-writing": "SAT Reading & Writing",
+    "math": "GMAT Quantitative Reasoning",
+    "reading-writing": "GMAT Verbal Reasoning",
+    "gmat": "GMAT",
+    "verbal": "GMAT Verbal Reasoning",
+    "quantitative": "GMAT Quantitative Reasoning",
+    "data_insights": "GMAT Data Insights",
 }
 
 problem_agent = Agent(
-    name="SAT Problem Generator",
+    name="GMAT Problem Generator",
     model=Claude(id="claude-sonnet-4-6"),
-    description="You generate realistic SAT problems with full solutions.",
+    description="You generate realistic GMAT problems with full solutions.",
     instructions=[
-        "You are an expert SAT problem writer.",
-        "Given a subtopic, its context, and the subject area, generate a batch of SAT-style multiple choice problems.",
+        "You are an expert GMAT problem writer.",
+        "Given a subtopic, its context, and the subject area, generate a batch of GMAT-style multiple choice problems.",
         "Each problem must have EXACTLY 4 answer choices (A-D).",
         "Return ONLY a valid JSON array of problem objects with these exact keys:",
         "- difficulty: string ('easy' | 'medium' | 'hard')",
@@ -38,7 +42,7 @@ problem_agent = Agent(
         "- hint: string (a nudge without giving away the answer — names the method, points to what is given)",
         "- detailedHint: string (walks through the reasoning step by step, leaving only the final computation for the student — gets close but does NOT give away the answer)",
         "Keep explanations and steps CONCISE to stay within output limits.",
-        "Problems should be realistic SAT-style questions with varying difficulty.",
+        "Problems should be realistic GMAT-style questions with varying difficulty.",
         "Ensure all answers are correct and unambiguous.",
         "Never use em-dashes (—) in any text fields.",
         "Emojis are allowed but use them sparingly; do not overuse them.",
@@ -127,12 +131,12 @@ async def generate_problems_batch(
     start_order_index: int = 0,
     subject: str = "math",
 ) -> list[dict]:
-    """Generate a batch of SAT problems via LLM with retry logic.
+    """Generate a batch of GMAT problems via LLM with retry logic.
 
     All problems in a batch share the same difficulty level so that callers
     can independently parallelize easy/medium/hard generation.
     """
-    subject_label = SUBJECT_LABELS.get(subject, "SAT Math")
+    subject_label = SUBJECT_LABELS.get(subject, "GMAT")
 
     problem_type = PROBLEM_TYPE_ROTATIONS[batch_number % len(PROBLEM_TYPE_ROTATIONS)]
 

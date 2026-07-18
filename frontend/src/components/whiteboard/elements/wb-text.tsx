@@ -59,7 +59,7 @@ type WbTextProps = {
 export function WbText({ text, x, y, width, height, style, reveal, progress, isAnimating }: WbTextProps) {
   const isDark = useIsDarkMode();
   const fontSize = FONT_SIZES[style?.fontSize ?? "md"];
-  const color = adaptWbColor(style?.color ?? "var(--foreground)", isDark);
+  const color = adaptWbColor(style?.color ?? "var(--wb-ink)", isDark);
   const fontWeight = style?.fontWeight ?? "normal";
   const lineHeight = fontSize * 1.5;
 

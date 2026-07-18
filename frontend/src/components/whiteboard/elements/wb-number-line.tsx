@@ -73,18 +73,18 @@ export function WbNumberLine({
         y1={lineY}
         x2={lineRight}
         y2={lineY}
-        style={{ stroke: "var(--secondary-foreground)" }}
+        style={{ stroke: "var(--wb-ink)" }}
         strokeWidth="2"
       />
 
       {/* Arrow tips */}
       <polygon
         points={`${lineRight},${lineY} ${lineRight - 7},${lineY - 4} ${lineRight - 7},${lineY + 4}`}
-        style={{ fill: "var(--secondary-foreground)" }}
+        style={{ fill: "var(--wb-ink)" }}
       />
       <polygon
         points={`${lineLeft},${lineY} ${lineLeft + 7},${lineY - 4} ${lineLeft + 7},${lineY + 4}`}
-        style={{ fill: "var(--secondary-foreground)" }}
+        style={{ fill: "var(--wb-ink)" }}
       />
 
       {/* Tick marks + labels */}
@@ -97,7 +97,7 @@ export function WbNumberLine({
               y1={lineY - 5}
               x2={tx}
               y2={lineY + 5}
-              style={{ stroke: "var(--secondary-foreground)" }}
+              style={{ stroke: "var(--wb-ink)" }}
               strokeWidth="1.5"
             />
             <text
@@ -105,7 +105,7 @@ export function WbNumberLine({
               y={lineY + 18}
               textAnchor="middle"
               fontSize="11"
-              style={{ fill: "var(--muted-foreground)" }}
+              style={{ fill: "var(--wb-ink-muted)" }}
               fontFamily="system-ui, sans-serif"
             >
               {v}
@@ -140,7 +140,7 @@ export function WbNumberLine({
                 y={lineY - r - 6}
                 textAnchor="middle"
                 fontSize="11"
-                style={{ fill: "var(--secondary-foreground)" }}
+                style={{ fill: "var(--wb-ink)" }}
                 fontWeight="bold"
                 fontFamily="system-ui, sans-serif"
               >

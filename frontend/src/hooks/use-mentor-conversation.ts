@@ -343,6 +343,28 @@ export function useMentorConversation() {
     [isProcessing, streamChat]
   );
 
+  // Silent send: fires the agent without showing a user bubble (for proactive openers)
+  const sendSilentMessage = useCallback(
+    async (internalPrompt: string) => {
+      if (isProcessing) return;
+      setIsProcessing(true);
+      try {
+        await streamChat(internalPrompt);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "tutor",
+            content: "Hey! I'm Athena, your GMAT coach. How can I help you today?",
+          },
+        ]);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [isProcessing, streamChat]
+  );
+
   const reset = useCallback(() => {
     setMessages([]);
     setWhiteboardSteps([]);
@@ -369,6 +391,7 @@ export function useMentorConversation() {
     whiteboardSteps,
     isWhiteboardStreaming,
     sendMessage,
+    sendSilentMessage,
     startRecording,
     stopRecording,
     toggleMode,
