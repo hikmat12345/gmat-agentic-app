@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: athena-agents
+    runtime: docker
+    dockerfilePath: backend/agents/Dockerfile
+    dockerContext: backend/agents
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: onboarding@resend.dev
+      - key: ALLOWED_ORIGINS
+        sync: false

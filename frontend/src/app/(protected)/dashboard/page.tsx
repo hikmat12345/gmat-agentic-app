@@ -15,6 +15,7 @@ import { FriendsLeaderboard } from "@/components/dashboard/friends-leaderboard";
 import { FullGmatCard } from "@/components/dashboard/full-gmat-card";
 import { RankCard } from "@/components/dashboard/rank-card";
 import { FocusRecommendationCard } from "@/components/dashboard/focus-recommendation-card";
+import { HowItWorksCard } from "@/components/dashboard/how-it-works-card";
 
 type StreakDay = { day: string; completed: boolean; isPast: boolean };
 type FriendScore = {
@@ -145,18 +146,23 @@ export default function DashboardPage() {
             <DailyQuestCard />
           </motion.div>
 
-          {/* 2. Focus areas — proactive coaching from stuck-points API */}
+          {/* 2. Feature discovery guide */}
           <motion.div custom={2} variants={fade} initial="hidden" animate="show">
+            <HowItWorksCard />
+          </motion.div>
+
+          {/* 3. Focus areas — proactive coaching from stuck-points API */}
+          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
             <FocusRecommendationCard />
           </motion.div>
 
-          {/* 3. Full GMAT practice test */}
-          <motion.div custom={3} variants={fade} initial="hidden" animate="show">
+          {/* 4. Full GMAT practice test */}
+          <motion.div custom={4} variants={fade} initial="hidden" animate="show">
             <FullGmatCard />
           </motion.div>
 
-          {/* 4. Weekly streak */}
-          <motion.div custom={4} variants={fade} initial="hidden" animate="show">
+          {/* 5. Weekly streak */}
+          <motion.div custom={5} variants={fade} initial="hidden" animate="show">
             <QuestStreak streak={data.streak} days={data.weeklyStreakDays} />
           </motion.div>
         </div>
