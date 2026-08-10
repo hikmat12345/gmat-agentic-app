@@ -55,6 +55,15 @@ def _no_api_key_response(service: str = "AI") -> StreamingResponse:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # These are infinite `while True` loops. They only make sense on a
+    # long-lived server process. On serverless platforms (Vercel) the function
+    # is frozen between requests and the event loop is torn down, so the tasks
+    # would never fire and would only slow cold starts. Skip them there and
+    # drive the same work from a scheduled trigger instead.
+    if os.environ.get("VERCEL"):
+        yield
+        return
+
     tasks = [
         asyncio.create_task(session_reminder_loop()),
         asyncio.create_task(weekly_summary_loop()),

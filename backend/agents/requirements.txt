@@ -1,0 +1,9 @@
+agno
+mcp
+fastapi
+openai
+anthropic
+supabase
+pydantic
+python-dotenv
+resend
