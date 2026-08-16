@@ -1,18 +1,25 @@
-"""Vercel Python entrypoint for the Athena agents service.
-
-Vercel's Python runtime discovers a module-level ASGI callable named `app`.
-This file lives in `api/`, so the service root (one level up) has to be put on
-`sys.path` before `main` can be imported.
-
-All routes are funnelled here by the rewrite rule in `vercel.json`, so the
-FastAPI router still sees its original paths (`/chat/stream`, etc.).
-"""
+"""Vercel Python entrypoint for the Athena agents service."""
 
 import sys
+import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from main import app  # noqa: E402
+try:
+    from main import app  # noqa: E402
+except Exception as _import_err:
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+
+    _tb = traceback.format_exc()
+    app = FastAPI()
+
+    @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+    async def _import_error_handler(path: str):
+        return JSONResponse(
+            {"startup_error": str(_import_err), "traceback": _tb},
+            status_code=500,
+        )
 
 __all__ = ["app"]
