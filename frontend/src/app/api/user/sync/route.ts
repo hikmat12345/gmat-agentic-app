@@ -38,6 +38,7 @@ export async function POST() {
         email,
         display_name: displayName ?? null,
         avatar_url: clerkUser.imageUrl || null,
+        subscription_status: "active",
         updated_at: new Date().toISOString(),
       },
       { onConflict: "clerk_id" }
