@@ -3,15 +3,25 @@
 import sys
 import traceback
 from pathlib import Path
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 try:
     from main import app  # noqa: E402
+
+    @app.api_route("/debug-path", methods=["GET", "POST"])
+    async def _debug_path(request: Request):
+        return JSONResponse({
+            "path": request.url.path,
+            "scope_path": request.scope.get("path"),
+            "root_path": request.scope.get("root_path"),
+            "headers": dict(request.headers),
+        })
+
 except Exception as _import_err:
     from fastapi import FastAPI
-    from fastapi.responses import JSONResponse
-
     _tb = traceback.format_exc()
     app = FastAPI()
 
