@@ -1,0 +1,13 @@
+# Railway builds with the repo root as the Docker context, so every path here
+# is relative to the root. (backend/agents/Dockerfile expects backend/agents
+# as the context and is kept for Render.)
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY backend/agents/pyproject.toml .
+RUN pip install --no-cache-dir .
+
+COPY backend/agents/ .
+
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
