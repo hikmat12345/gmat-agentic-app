@@ -143,7 +143,7 @@ function BillingContent() {
             <div className="space-y-0.5">
               <p className="text-xs text-muted-foreground">Plan</p>
               <p className="font-semibold">
-                {subscription.plan === "annual" ? "$199 / year" : "$29 / month"}
+                {subscription.plan === "annual" ? "$59 / year" : "$7.99 / month"}
               </p>
             </div>
           </div>
@@ -203,7 +203,7 @@ function BillingContent() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Monthly</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-3xl font-bold">$29</span>
+                <span className="text-3xl font-bold">$7.99</span>
                 <span className="text-muted-foreground text-sm">/month</span>
               </div>
             </div>
@@ -235,10 +235,10 @@ function BillingContent() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Annual</p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-3xl font-bold">$17</span>
+                <span className="text-3xl font-bold">$4.92</span>
                 <span className="text-muted-foreground text-sm">/month</span>
               </div>
-              <p className="text-xs text-muted-foreground">$199/year — save $149</p>
+              <p className="text-xs text-muted-foreground">$59/year — save $37</p>
             </div>
             <ul className="space-y-2 text-sm">
               {["Everything in Monthly", "Priority AI response time", "Early feature access", "Score improvement guarantee"].map(

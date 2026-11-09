@@ -11,7 +11,12 @@
       "WebFetch(*)",
       "WebSearch(*)",
       "TodoWrite(*)",
-      "Agent(*)"
+      "Agent(*)",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 16888 -Force; Write-Host 'Killed 16888'\")",
+      "Bash(cat /c/Users/eduta/AppData/Local/Temp/gre-dev4.log 2>&1)",
+      "Read(//c/Users/eduta/AppData/Local/Temp/**)",
+      "Bash(until grep *)",
+      "Bash(powershell.exe -Command \"Test-NetConnection -ComputerName localhost -Port 3000 -InformationLevel Detailed\")"
     ],
     "deny": [
       "Bash(git push --force*)",
@@ -19,7 +24,8 @@
       "Bash(rm -rf *)",
       "Bash(DROP TABLE*)",
       "Bash(npx typeorm migration:revert*)"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "PreToolUse": [

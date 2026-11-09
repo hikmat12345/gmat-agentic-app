@@ -688,7 +688,7 @@ DROP TYPE IF EXISTS problem_source;
 -- A. Create unified problems table
 -- ============================================================
 
-CREATE TYPE problem_source AS ENUM ('onboarding', 'sat', 'practice', 'custom');
+CREATE TYPE problem_source AS ENUM ('onboarding', 'sat', 'practice', 'custom', 'full_sat', 'gmat', 'full_gmat');
 
 CREATE TABLE problems (
   id                          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -746,7 +746,7 @@ CREATE UNIQUE INDEX idx_problems_custom_topic_order ON problems(custom_topic_id,
 -- B. Create unified quiz_sessions table
 -- ============================================================
 
-CREATE TYPE session_source AS ENUM ('onboarding', 'sat', 'custom');
+CREATE TYPE session_source AS ENUM ('onboarding', 'sat', 'custom', 'full_sat', 'gmat');
 
 CREATE TABLE quiz_sessions (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -915,13 +915,6 @@ ALTER TABLE "subtopic_lore" ADD CONSTRAINT "subtopic_lore_subtopic_id_subtopics_
 -- ============================================================
 -- A. Extend enums
 -- ============================================================
-
-ALTER TYPE problem_source ADD VALUE IF NOT EXISTS 'full_sat';
-ALTER TYPE session_source ADD VALUE IF NOT EXISTS 'full_sat';
-
--- Commit enum additions before using new values (PostgreSQL restriction)
-COMMIT;
-BEGIN;
 
 -- ============================================================
 -- B. Update CHECK constraint on problems to allow full_sat
@@ -1179,14 +1172,6 @@ ALTER TABLE onboarding_progress
 -- ============================================================
 -- A. Extend problem_source enum with GMAT values
 -- ============================================================
-
-ALTER TYPE problem_source ADD VALUE IF NOT EXISTS 'gmat';
-ALTER TYPE problem_source ADD VALUE IF NOT EXISTS 'full_gmat';
-
--- Extend session_source enum
-ALTER TYPE session_source ADD VALUE IF NOT EXISTS 'gmat';
-
--- Enum values are committed immediately with IF NOT EXISTS — no COMMIT/BEGIN needed.
 
 -- ============================================================
 -- B. Update problems table: add GMAT-specific columns

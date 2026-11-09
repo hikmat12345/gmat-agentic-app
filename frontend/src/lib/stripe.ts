@@ -15,13 +15,13 @@ export const PLANS = {
   monthly: {
     priceId: process.env.STRIPE_MONTHLY_PRICE_ID ?? "",
     name: "Monthly",
-    amount: 2900,
+    amount: 799,
     interval: "month" as const,
   },
   annual: {
     priceId: process.env.STRIPE_ANNUAL_PRICE_ID ?? "",
     name: "Annual",
-    amount: 19900,
+    amount: 5900,
     interval: "year" as const,
   },
 } as const;

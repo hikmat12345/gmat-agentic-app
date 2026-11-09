@@ -702,23 +702,23 @@ BEGIN
 
   -- ── 2. Resolve subtopic IDs ────────────────────────────────
   SELECT s.id INTO v_sub_cr   FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-assumption'      AND t.slug='critical-reasoning';
-  SELECT s.id INTO v_sub_cr_str FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-strengthen'    AND t.slug='critical-reasoning';
-  SELECT s.id INTO v_sub_cr_wk  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-weaken'        AND t.slug='critical-reasoning';
-  SELECT s.id INTO v_sub_cr_inf FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-inference'     AND t.slug='critical-reasoning';
-  SELECT s.id INTO v_sub_rc     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-main-idea'     AND t.slug='reading-comprehension';
-  SELECT s.id INTO v_sub_rc_det FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-detail'        AND t.slug='reading-comprehension';
-  SELECT s.id INTO v_sub_rc_inf FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-inference'     AND t.slug='reading-comprehension';
-  SELECT s.id INTO v_sub_ps     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-algebra'       AND t.slug='problem-solving';
-  SELECT s.id INTO v_sub_ps_wp  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-word-problems' AND t.slug='problem-solving';
-  SELECT s.id INTO v_sub_ps_geo FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-geometry'      AND t.slug='problem-solving';
-  SELECT s.id INTO v_sub_ps_num FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-number-theory' AND t.slug='problem-solving';
-  SELECT s.id INTO v_sub_ps_stat FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-statistics'   AND t.slug='problem-solving';
-  SELECT s.id INTO v_sub_ds     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-algebra'       AND t.slug='data-sufficiency';
-  SELECT s.id INTO v_sub_ds_np  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-number-properties' AND t.slug='data-sufficiency';
-  SELECT s.id INTO v_sub_ds_wp  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-word-problems' AND t.slug='data-sufficiency';
-  SELECT s.id INTO v_sub_msr    FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='msr-email-sets'   AND t.slug='multi-source-reasoning';
-  SELECT s.id INTO v_sub_ta     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ta-sorting-filtering' AND t.slug='table-analysis';
-  SELECT s.id INTO v_sub_gi     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='gi-bar-chart'     AND t.slug='graphics-interpretation';
+  SELECT s.id INTO v_sub_cr_str FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-strengthen-weaken' AND t.slug='critical-reasoning';
+  SELECT s.id INTO v_sub_cr_wk  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-strengthen-weaken' AND t.slug='critical-reasoning';
+  SELECT s.id INTO v_sub_cr_inf FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='cr-inference'         AND t.slug='critical-reasoning';
+  SELECT s.id INTO v_sub_rc     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-main-idea'         AND t.slug='reading-comprehension';
+  SELECT s.id INTO v_sub_rc_det FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-detail'            AND t.slug='reading-comprehension';
+  SELECT s.id INTO v_sub_rc_inf FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='rc-inference'         AND t.slug='reading-comprehension';
+  SELECT s.id INTO v_sub_ps     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-algebra'           AND t.slug='problem-solving';
+  SELECT s.id INTO v_sub_ps_wp  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-word-problems'     AND t.slug='problem-solving';
+  SELECT s.id INTO v_sub_ps_geo FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-geometry'          AND t.slug='problem-solving';
+  SELECT s.id INTO v_sub_ps_num FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-arithmetic'        AND t.slug='problem-solving';
+  SELECT s.id INTO v_sub_ps_stat FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ps-statistics'       AND t.slug='problem-solving';
+  SELECT s.id INTO v_sub_ds     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-algebra'           AND t.slug='data-sufficiency';
+  SELECT s.id INTO v_sub_ds_np  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-arithmetic'        AND t.slug='data-sufficiency';
+  SELECT s.id INTO v_sub_ds_wp  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ds-algebra'           AND t.slug='data-sufficiency';
+  SELECT s.id INTO v_sub_msr    FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='msr-navigation'       AND t.slug='multi-source-reasoning';
+  SELECT s.id INTO v_sub_ta     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='ta-sorting'           AND t.slug='table-analysis';
+  SELECT s.id INTO v_sub_gi     FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='gi-charts'            AND t.slug='graphics-interpretation';
   SELECT s.id INTO v_sub_tpa    FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='tpa-quantitative' AND t.slug='two-part-analysis';
   SELECT s.id INTO v_sub_tpa_v  FROM subtopics s JOIN topics t ON t.id=s.topic_id WHERE s.slug='tpa-verbal'       AND t.slug='two-part-analysis';
 

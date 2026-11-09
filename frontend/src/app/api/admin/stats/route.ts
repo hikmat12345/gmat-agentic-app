@@ -36,8 +36,8 @@ export async function GET() {
   const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const activeSubscriptions = subscriptions.filter((s: any) => ["active", "trialing"].includes(s.status));
-  const monthlyRevenue = activeSubscriptions.filter((s: any) => s.plan === "monthly").length * 29;
-  const annualRevenue = activeSubscriptions.filter((s: any) => s.plan === "annual").length * (199 / 12);
+  const monthlyRevenue = activeSubscriptions.filter((s: any) => s.plan === "monthly").length * 7.99;
+  const annualRevenue = activeSubscriptions.filter((s: any) => s.plan === "annual").length * (59 / 12);
 
   return NextResponse.json({
     users: {

@@ -368,7 +368,7 @@ export function subscriptionConfirmedHtml({
   plan: "monthly" | "annual";
   renewsAt: string;
 }) {
-  const price = plan === "annual" ? "$199 / year" : "$29 / month";
+  const price = plan === "annual" ? "$59 / year" : "$7.99 / month";
   const hero = `
     <tr>
       <td style="background:${c.navy};padding:36px 36px 40px;text-align:center;">
